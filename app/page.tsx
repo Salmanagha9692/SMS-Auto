@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SiteContent, defaultContent } from "./lib/content";
+import { SiteContent, defaultContent, getContent } from "./lib/content";
 
 type Tier = "free" | "5" | "10" | "custom";
 type PaymentType = "one-time" | "monthly";
@@ -11,13 +11,23 @@ export default function JoinPage() {
   const [customAmount, setCustomAmount] = useState("");
   const [paymentType, setPaymentType] = useState<PaymentType>("monthly");
   const [content, setContent] = useState<SiteContent>(defaultContent);
+  const [loading, setLoading] = useState(true);
 
-  // Load dynamic content from localStorage
+  // Load dynamic content from API
   useEffect(() => {
-    const savedContent = localStorage.getItem("siteContent");
-    if (savedContent) {
-      setContent(JSON.parse(savedContent));
-    }
+    const loadContent = async () => {
+      try {
+        const fetchedContent = await getContent();
+        setContent(fetchedContent);
+      } catch (err) {
+        console.error('Failed to load content:', err);
+        // Fallback to default content on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContent();
   }, []);
 
   const handleContinue = () => {
@@ -29,6 +39,16 @@ export default function JoinPage() {
   };
 
   const isValid = selectedTier && (selectedTier !== "custom" || Number(customAmount) > 0);
+
+  // Show loading state while fetching content
+  if (loading) {
+    return (
+      <div className="min-h-screen min-h-dvh bg-white flex flex-col max-w-[480px] mx-auto items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#F0506E] border-t-transparent"></div>
+        <div className="text-gray-600 text-sm font-medium">Loading content...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen min-h-dvh bg-white flex flex-col max-w-[480px] mx-auto">

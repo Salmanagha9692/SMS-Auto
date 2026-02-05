@@ -1,34 +1,70 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SiteContent, defaultContent } from "../lib/content";
+import { SiteContent, defaultContent, getContent, updateContent } from "../lib/content";
 
 export default function AdminPage() {
   const [content, setContent] = useState<SiteContent>(defaultContent);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [newHighlight, setNewHighlight] = useState("");
 
-  // Load saved content from localStorage on mount
+  // Load content from API on mount
   useEffect(() => {
-    const savedContent = localStorage.getItem("siteContent");
-    if (savedContent) {
-      setContent(JSON.parse(savedContent));
-    }
+    const loadContent = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedContent = await getContent();
+        setContent(fetchedContent);
+      } catch (err) {
+        console.error('Failed to load content:', err);
+        setError('Failed to load content from server');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContent();
   }, []);
 
-  // Save content to localStorage
-  const handleSave = () => {
-    localStorage.setItem("siteContent", JSON.stringify(content));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Save content to API
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      setSaved(false);
+      await updateContent(content);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      console.error('Failed to save content:', err);
+      setError(err.message || 'Failed to save content');
+      setSaved(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Reset to default content
-  const handleReset = () => {
-    setContent(defaultContent);
-    localStorage.removeItem("siteContent");
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Reset to default content (also saves to API)
+  const handleReset = async () => {
+    try {
+      setResetting(true);
+      setError(null);
+      setSaved(false);
+      await updateContent(defaultContent);
+      setContent(defaultContent);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      console.error('Failed to reset content:', err);
+      setError(err.message || 'Failed to reset content');
+    } finally {
+      setResetting(false);
+    }
   };
 
   // Update header
@@ -83,6 +119,21 @@ export default function AdminPage() {
               ← Back to Site
             </a>
           </div>
+
+          {/* Loading State */}
+          {loading && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+              <span className="text-blue-700 text-sm font-medium">Loading content from server...</span>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+              ⚠️ {error}
+            </div>
+          )}
 
           {/* Success Message */}
           {saved && (
@@ -221,15 +272,31 @@ export default function AdminPage() {
           <div className="flex gap-3">
             <button
               onClick={handleSave}
-              className="flex-1 py-3 bg-[#F0506E] text-white font-semibold rounded-lg hover:bg-[#E03A5A] transition-colors"
+              disabled={loading || saving || resetting}
+              className="flex-1 py-3 bg-[#F0506E] text-white font-semibold rounded-lg hover:bg-[#E03A5A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Save Changes
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </button>
             <button
               onClick={handleReset}
-              className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
+              disabled={loading || saving || resetting}
+              className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Reset to Default
+              {resetting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-600 border-t-transparent"></div>
+                  <span>Resetting...</span>
+                </>
+              ) : (
+                'Reset to Default'
+              )}
             </button>
           </div>
         </div>

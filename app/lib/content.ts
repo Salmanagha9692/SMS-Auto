@@ -5,14 +5,19 @@ export interface HeaderContent {
 }
 
 export interface HeroContent {
-  subtitle: string;
-  title: string;
-  highlights: string[];
+  title: string; // Main title (e.g., "COMMUNITY WEFT*")
+  subtitle: string; // Subtitle (e.g., "a practice in compassion & connection")
+}
+
+export interface IntroContent {
+  mainText: string; // Main introductory text
+  subText: string; // Secondary explanatory text (italicized)
 }
 
 export interface SiteContent {
   header: HeaderContent;
   hero: HeroContent;
+  intro: IntroContent;
 }
 
 // Default content
@@ -22,13 +27,12 @@ export const defaultContent: SiteContent = {
     logoAlt: "footage",
   },
   hero: {
-    subtitle: "JOIN OUR COMMUNITY",
-    title: "PRACTICING COMPASSION",
-    highlights: [
-      "Overview of GBV in Kyrgyzstan",
-      "Purpose of the PowerTools initiative",
-      "Key findings from needs assessment",
-    ],
+    title: "COMMUNITY WEFT*",
+    subtitle: "a practice in compassion & connection",
+  },
+  intro: {
+    mainText: "*In weaving, the weft is the thread that holds the fabric together. Community Weft is a monthly text practice of care and connection —your thread helping sustain FemSMS messages for people living through war, displacement, and crisis.",
+    subText: "Choose how you'd like to sustain the practice—all members receive the same messages. $5 a month helps—and giving more helps us reach more people.",
   },
 };
 
@@ -57,9 +61,12 @@ export async function getContent(): Promise<SiteContent> {
           logoAlt: result.data.header?.logoAlt || defaultContent.header.logoAlt,
         },
         hero: {
-          subtitle: result.data.hero?.subtitle || defaultContent.hero.subtitle,
           title: result.data.hero?.title || defaultContent.hero.title,
-          highlights: result.data.hero?.highlights || defaultContent.hero.highlights,
+          subtitle: result.data.hero?.subtitle || defaultContent.hero.subtitle,
+        },
+        intro: {
+          mainText: result.data.intro?.mainText || defaultContent.intro.mainText,
+          subText: result.data.intro?.subText || defaultContent.intro.subText,
         },
       };
     }

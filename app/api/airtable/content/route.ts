@@ -5,6 +5,18 @@ import * as airtableService from '@/app/lib/airtable';
  * Update or create content in Airtable
  * POST /api/airtable/content
  * Updates or creates header and/or hero content in Airtable content table
+ * 
+ * Request body:
+ * {
+ *   header?: {
+ *     logoUrl?: string;
+ *     logoAlt?: string;
+ *   };
+ *   hero?: {
+ *     title: string;  // Main title (e.g., "COMMUNITY WEFT*")
+ *     subtitle: string;  // Subtitle (e.g., "a practice in compassion & connection")
+ *   };
+ * }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -19,9 +31,31 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Validate hero structure if provided
+    if (hero) {
+      if (typeof hero.title !== 'string' || typeof hero.subtitle !== 'string') {
+        return NextResponse.json({
+          success: false,
+          error: 'Validation error',
+          message: 'Hero section must contain both title (string) and subtitle (string)'
+        }, { status: 400 });
+      }
+    }
+
     const contentData: { header?: any; hero?: any } = {};
-    if (header) contentData.header = header;
-    if (hero) contentData.hero = hero;
+    if (header) {
+      contentData.header = {
+        logoUrl: header.logoUrl || '',
+        logoAlt: header.logoAlt || ''
+      };
+    }
+    if (hero) {
+      // Only include title and subtitle, ignore any old highlights field
+      contentData.hero = {
+        title: hero.title,
+        subtitle: hero.subtitle
+      };
+    }
 
     const result = await airtableService.updateContent(contentData);
     
@@ -48,6 +82,21 @@ export async function POST(request: NextRequest) {
  * Get content from Airtable
  * GET /api/airtable/content
  * Retrieves header and hero content from Airtable content table
+ * 
+ * Response:
+ * {
+ *   success: boolean;
+ *   data: {
+ *     header?: {
+ *       logoUrl: string;
+ *       logoAlt: string;
+ *     };
+ *     hero?: {
+ *       title: string;  // Main title
+ *       subtitle: string;  // Subtitle
+ *     };
+ *   };
+ * }
  */
 export async function GET() {
   try {

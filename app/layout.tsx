@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { Playfair_Display, Inter, Noto_Sans } from "next/font/google";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -15,6 +15,13 @@ const inter = Inter({
   weight: ["300", "400", "500", "600", "700"],
 });
 
+const notoSans = Noto_Sans({
+  variable: "--font-noto-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
   title: "Footage | Join Our Community",
   description: "Join our community practicing compassion.",
@@ -27,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${inter.variable} antialiased`}>
+      <body className={`${playfair.variable} ${inter.variable} ${notoSans.variable} antialiased`}>
         {children}
       </body>
     </html>

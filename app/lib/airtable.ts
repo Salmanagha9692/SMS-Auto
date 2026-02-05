@@ -185,8 +185,12 @@ export async function findOrCreateContentTable() {
 /**
  * Update or create content in Airtable
  * Accepts both header and hero data
+ * 
+ * @param contentData - Content to update
+ * @param contentData.header - Header content with logoUrl and logoAlt
+ * @param contentData.hero - Hero content with title and subtitle (no highlights)
  */
-export async function updateContent(contentData: { header?: any; hero?: any }) {
+export async function updateContent(contentData: { header?: any; hero?: { title: string; subtitle: string } }) {
   try {
     // Get or create content table
     const contentTable = await findOrCreateContentTable();
@@ -249,6 +253,9 @@ export async function updateContent(contentData: { header?: any; hero?: any }) {
 
 /**
  * Get all content from Airtable (header and hero)
+ * Returns content with the new structure:
+ * - hero: { title: string, subtitle: string } (no highlights)
+ * - header: { logoUrl: string, logoAlt: string }
  */
 export async function getContent() {
   try {
@@ -269,7 +276,17 @@ export async function getContent() {
         
         if (section === 'header' || section === 'hero') {
           try {
-            content[section as 'header' | 'hero'] = JSON.parse(jsonData);
+            const parsedData = JSON.parse(jsonData);
+            
+            // Clean up hero data: remove old highlights field if it exists
+            if (section === 'hero' && parsedData) {
+              content.hero = {
+                title: parsedData.title || '',
+                subtitle: parsedData.subtitle || ''
+              };
+            } else if (section === 'header') {
+              content.header = parsedData;
+            }
           } catch (parseError) {
             console.error(`Error parsing JSON for ${section}:`, parseError);
           }

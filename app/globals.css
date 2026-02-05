@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Bobby Jones Soft Condensed';
+  src: url('/fonts/bobby-jones-soft-condensed.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   --font-sans: var(--font-inter);
   --font-serif: var(--font-playfair);
+  --font-noto-sans: var(--font-noto-sans);
+  --font-bobby: 'Bobby Jones Soft Condensed', sans-serif;
 }
 
 html {
@@ -10,7 +20,15 @@ html {
 }
 
 body {
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-noto-sans), system-ui, sans-serif;
+}
+
+.font-noto {
+  font-family: var(--font-noto-sans), system-ui, sans-serif;
+}
+
+.font-bobby {
+  font-family: var(--font-bobby);
 }
 
 /* Remove number input spinners */

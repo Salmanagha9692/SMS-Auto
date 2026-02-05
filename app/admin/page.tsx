@@ -10,7 +10,6 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newHighlight, setNewHighlight] = useState("");
 
   // Load content from API on mount
   useEffect(() => {
@@ -76,34 +75,11 @@ export default function AdminPage() {
   };
 
   // Update hero
-  const updateHero = (field: keyof SiteContent["hero"], value: string | string[]) => {
+  const updateHero = (field: keyof SiteContent["hero"], value: string) => {
     setContent((prev) => ({
       ...prev,
       hero: { ...prev.hero, [field]: value },
     }));
-  };
-
-  // Add highlight
-  const addHighlight = () => {
-    if (newHighlight.trim()) {
-      updateHero("highlights", [...content.hero.highlights, newHighlight.trim()]);
-      setNewHighlight("");
-    }
-  };
-
-  // Remove highlight
-  const removeHighlight = (index: number) => {
-    updateHero(
-      "highlights",
-      content.hero.highlights.filter((_, i) => i !== index)
-    );
-  };
-
-  // Update highlight
-  const updateHighlight = (index: number, value: string) => {
-    const newHighlights = [...content.hero.highlights];
-    newHighlights[index] = value;
-    updateHero("highlights", newHighlights);
   };
 
   return (
@@ -114,7 +90,7 @@ export default function AdminPage() {
             <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
             <a
               href="/"
-              className="text-sm text-[#F0506E] hover:underline"
+              className="text-sm text-[#f52151] hover:underline"
             >
               ← Back to Site
             </a>
@@ -157,7 +133,7 @@ export default function AdminPage() {
                   value={content.header.logoUrl || ""}
                   onChange={(e) => updateHeader("logoUrl", e.target.value)}
                   placeholder="https://example.com/logo.png or /logo.png"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F0506E] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Enter the URL or path to your logo image. Leave empty to show "footage" text.
@@ -172,7 +148,7 @@ export default function AdminPage() {
                   value={content.header.logoAlt || ""}
                   onChange={(e) => updateHeader("logoAlt", e.target.value)}
                   placeholder="footage"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F0506E] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
               </div>
               {content.header.logoUrl && (
@@ -202,68 +178,34 @@ export default function AdminPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subtitle (small text above title)
-                </label>
-                <input
-                  type="text"
-                  value={content.hero.subtitle}
-                  onChange={(e) => updateHero("subtitle", e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F0506E] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Main Title
+                  Main Title (e.g., "COMMUNITY WEFT*")
                 </label>
                 <input
                   type="text"
                   value={content.hero.title}
                   onChange={(e) => updateHero("title", e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F0506E] focus:border-transparent"
+                  placeholder="COMMUNITY WEFT*"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  This will be displayed in white, bold, uppercase on black background
+                </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Highlights / Bullet Points
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subtitle (e.g., "a practice in compassion & connection")
                 </label>
-                <div className="space-y-2">
-                  {content.hero.highlights.map((highlight, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={highlight}
-                        onChange={(e) => updateHighlight(index, e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F0506E] focus:border-transparent"
-                      />
-                      <button
-                        onClick={() => removeHighlight(index)}
-                        className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Add new highlight */}
-                <div className="flex gap-2 mt-3">
-                  <input
-                    type="text"
-                    value={newHighlight}
-                    onChange={(e) => setNewHighlight(e.target.value)}
-                    placeholder="Add new highlight..."
-                    onKeyDown={(e) => e.key === "Enter" && addHighlight()}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F0506E] focus:border-transparent"
-                  />
-                  <button
-                    onClick={addHighlight}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    + Add
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  value={content.hero.subtitle}
+                  onChange={(e) => updateHero("subtitle", e.target.value)}
+                  placeholder="a practice in compassion & connection"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  This will be displayed in pink/magenta, italicized below the title
+                </p>
               </div>
             </div>
           </section>
@@ -273,7 +215,7 @@ export default function AdminPage() {
             <button
               onClick={handleSave}
               disabled={loading || saving || resetting}
-              className="flex-1 py-3 bg-[#F0506E] text-white font-semibold rounded-lg hover:bg-[#E03A5A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-[#f52151] text-white font-semibold rounded-lg hover:bg-[#d11d45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {saving ? (
                 <>
@@ -327,18 +269,13 @@ export default function AdminPage() {
             </div>
             
             {/* Hero Preview */}
-            <div className="bg-black text-white p-4 text-center">
-              <p className="text-[9px] tracking-[2px] uppercase mb-2">
-                {content.hero.subtitle}
-              </p>
-              <h2 className="text-lg font-bold uppercase text-[#F0506E] mb-2">
+            <div className="bg-black text-white p-6 sm:p-8 text-center flex flex-col justify-center items-center min-h-[200px]">
+              <h2 className="text-xl sm:text-2xl font-bold uppercase text-white mb-3 sm:mb-4 font-sans tracking-tight">
                 {content.hero.title}
               </h2>
-              <div className="text-[10px] text-white/90 space-y-0.5">
-                {content.hero.highlights.map((highlight, index) => (
-                  <p key={index}>{highlight}</p>
-                ))}
-              </div>
+              <p className="text-sm sm:text-base italic text-[#f52151] font-sans leading-relaxed">
+                {content.hero.subtitle}
+              </p>
             </div>
           </div>
         </div>

@@ -424,3 +424,295 @@ export async function updatePhoneRecord(recordId: string, phoneNumber: string, m
   }
 }
 
+/**
+ * Find or create payments table
+ * Creates a table with payment and subscription fields if it doesn't exist
+ */
+export async function findOrCreatePaymentsTable() {
+  try {
+    const tablesData = await getTables();
+    const paymentsTable = tablesData.tables?.find((table: any) => 
+      table.name.toLowerCase() === 'payments' || table.name.toLowerCase() === 'subscriptions'
+    );
+
+    if (paymentsTable) {
+      return paymentsTable;
+    }
+
+    // Create payments table
+    const fields = [
+      {
+        name: 'Email',
+        type: 'email',
+        description: 'Customer email address'
+      },
+      {
+        name: 'Phone Number',
+        type: 'phoneNumber',
+        description: 'Customer phone number'
+      },
+      {
+        name: 'Tier',
+        type: 'singleSelect',
+        options: {
+          choices: [
+            { name: 'free' },
+            { name: '5' },
+            { name: '10' },
+            { name: '25' },
+            { name: '50' },
+            { name: '75' },
+            { name: '100' },
+            { name: 'custom' }
+          ]
+        }
+      },
+      {
+        name: 'Amount',
+        type: 'number',
+        options: {
+          precision: 2
+        }
+      },
+      {
+        name: 'Payment Type',
+        type: 'singleSelect',
+        options: {
+          choices: [
+            { name: 'one-time' },
+            { name: 'monthly' }
+          ]
+        }
+      },
+      {
+        name: 'Stripe Customer ID',
+        type: 'singleLineText',
+        description: 'Stripe customer ID'
+      },
+      {
+        name: 'Stripe Subscription ID',
+        type: 'singleLineText',
+        description: 'Stripe subscription ID for monthly payments'
+      },
+      {
+        name: 'Stripe Payment Intent ID',
+        type: 'singleLineText',
+        description: 'Stripe payment intent ID for one-time payments'
+      },
+      {
+        name: 'Stripe Session ID',
+        type: 'singleLineText',
+        description: 'Stripe checkout session ID'
+      },
+      {
+        name: 'Status',
+        type: 'singleSelect',
+        options: {
+          choices: [
+            { name: 'pending' },
+            { name: 'completed' },
+            { name: 'failed' },
+            { name: 'cancelled' },
+            { name: 'active' },
+            { name: 'inactive' }
+          ]
+        }
+      },
+      {
+        name: 'Created At',
+        type: 'dateTime',
+        description: 'Payment created timestamp',
+        options: {
+          dateFormat: {
+            name: 'iso'
+          },
+          timeFormat: {
+            name: '24hour'
+          },
+          timeZone: 'utc'
+        }
+      },
+      {
+        name: 'Last Updated',
+        type: 'dateTime',
+        description: 'Last update timestamp',
+        options: {
+          dateFormat: {
+            name: 'iso'
+          },
+          timeFormat: {
+            name: '24hour'
+          },
+          timeZone: 'utc'
+        }
+      }
+    ];
+
+    const newTable = await createTable('Payments', fields);
+    return newTable;
+  } catch (error) {
+    console.error('Error finding or creating payments table:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a payment record in Airtable
+ */
+export async function createPaymentRecord(paymentData: {
+  email?: string;
+  phoneNumber?: string;
+  tier: string;
+  amount: number;
+  paymentType: 'one-time' | 'monthly';
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripePaymentIntentId?: string;
+  stripeSessionId?: string;
+  status: string;
+}) {
+  try {
+    const paymentsTable = await findOrCreatePaymentsTable();
+    const tableName = paymentsTable.name || 'Payments';
+    
+    const fields: Record<string, any> = {
+      'Tier': paymentData.tier,
+      'Amount': paymentData.amount,
+      'Payment Type': paymentData.paymentType,
+      'Status': paymentData.status,
+      'Created At': new Date().toISOString(),
+      'Last Updated': new Date().toISOString()
+    };
+
+    if (paymentData.email) fields['Email'] = paymentData.email;
+    if (paymentData.phoneNumber) fields['Phone Number'] = paymentData.phoneNumber;
+    if (paymentData.stripeCustomerId) fields['Stripe Customer ID'] = paymentData.stripeCustomerId;
+    if (paymentData.stripeSubscriptionId) fields['Stripe Subscription ID'] = paymentData.stripeSubscriptionId;
+    if (paymentData.stripePaymentIntentId) fields['Stripe Payment Intent ID'] = paymentData.stripePaymentIntentId;
+    if (paymentData.stripeSessionId) fields['Stripe Session ID'] = paymentData.stripeSessionId;
+
+    const record = await createRecord(tableName, fields);
+    return record;
+  } catch (error) {
+    console.error('Error creating payment record:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a payment record in Airtable
+ */
+export async function updatePaymentRecord(recordId: string, paymentData: {
+  email?: string;
+  phoneNumber?: string;
+  tier?: string;
+  amount?: number;
+  paymentType?: 'one-time' | 'monthly';
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripePaymentIntentId?: string;
+  stripeSessionId?: string;
+  status?: string;
+}) {
+  try {
+    const paymentsTable = await findOrCreatePaymentsTable();
+    const tableName = paymentsTable.name || 'Payments';
+    
+    const fields: Record<string, any> = {
+      'Last Updated': new Date().toISOString()
+    };
+
+    if (paymentData.email !== undefined) fields['Email'] = paymentData.email;
+    if (paymentData.phoneNumber !== undefined) fields['Phone Number'] = paymentData.phoneNumber;
+    if (paymentData.tier !== undefined) fields['Tier'] = paymentData.tier;
+    if (paymentData.amount !== undefined) fields['Amount'] = paymentData.amount;
+    if (paymentData.paymentType !== undefined) fields['Payment Type'] = paymentData.paymentType;
+    if (paymentData.stripeCustomerId !== undefined) fields['Stripe Customer ID'] = paymentData.stripeCustomerId;
+    if (paymentData.stripeSubscriptionId !== undefined) fields['Stripe Subscription ID'] = paymentData.stripeSubscriptionId;
+    if (paymentData.stripePaymentIntentId !== undefined) fields['Stripe Payment Intent ID'] = paymentData.stripePaymentIntentId;
+    if (paymentData.stripeSessionId !== undefined) fields['Stripe Session ID'] = paymentData.stripeSessionId;
+    if (paymentData.status !== undefined) fields['Status'] = paymentData.status;
+
+    const record = await updateRecord(tableName, recordId, fields);
+    return record;
+  } catch (error) {
+    console.error('Error updating payment record:', error);
+    throw error;
+  }
+}
+
+/**
+ * Find payment record by Stripe Session ID
+ */
+export async function findPaymentBySessionId(sessionId: string) {
+  try {
+    const paymentsTable = await findOrCreatePaymentsTable();
+    const tableName = paymentsTable.name || 'Payments';
+    
+    const escapedSessionId = sessionId.replace(/"/g, '\\"');
+    
+    const records = await getRecords(tableName, {
+      filterByFormula: `{Stripe Session ID} = "${escapedSessionId}"`
+    });
+
+    if (records.records && records.records.length > 0) {
+      return records.records[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding payment by session ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Find payment record by Stripe Customer ID
+ */
+export async function findPaymentByCustomerId(customerId: string) {
+  try {
+    const paymentsTable = await findOrCreatePaymentsTable();
+    const tableName = paymentsTable.name || 'Payments';
+    
+    const escapedCustomerId = customerId.replace(/"/g, '\\"');
+    
+    const records = await getRecords(tableName, {
+      filterByFormula: `{Stripe Customer ID} = "${escapedCustomerId}"`
+    });
+
+    if (records.records && records.records.length > 0) {
+      return records.records[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding payment by customer ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Find payment record by Stripe Subscription ID
+ */
+export async function findPaymentBySubscriptionId(subscriptionId: string) {
+  try {
+    const paymentsTable = await findOrCreatePaymentsTable();
+    const tableName = paymentsTable.name || 'Payments';
+    
+    const escapedSubscriptionId = subscriptionId.replace(/"/g, '\\"');
+    
+    const records = await getRecords(tableName, {
+      filterByFormula: `{Stripe Subscription ID} = "${escapedSubscriptionId}"`
+    });
+
+    if (records.records && records.records.length > 0) {
+      return records.records[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding payment by subscription ID:', error);
+    throw error;
+  }
+}
+

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { SiteContent, defaultContent, getContent } from "./lib/content";
+import ContactModal from "./components/ContactModal";
 
 type Tier = "free" | "5" | "10" | "25" | "50" | "75" | "100" | "custom";
 type PaymentType = "one-time" | "monthly";
@@ -10,8 +11,13 @@ export default function JoinPage() {
   const [selectedTier, setSelectedTier] = useState<Tier | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [paymentType, setPaymentType] = useState<PaymentType>("monthly");
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [showContactModal, setShowContactModal] = useState(false);
   const [content, setContent] = useState<SiteContent>(defaultContent);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load dynamic content from API
   useEffect(() => {
@@ -30,12 +36,92 @@ export default function JoinPage() {
     loadContent();
   }, []);
 
-  const handleContinue = () => {
-    console.log({
-      tier: selectedTier,
-      customAmount: selectedTier === "custom" ? customAmount : null,
-      paymentType,
-    });
+  // Reset contact modal when tier changes
+  useEffect(() => {
+    if (selectedTier !== "free") {
+      setShowContactModal(false);
+      setEmail("");
+      setPhoneNumber("");
+    }
+  }, [selectedTier]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showContactModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showContactModal]);
+
+  const handleContinue = async () => {
+    setError(null);
+
+    // For free tier, show contact modal first
+    if (selectedTier === "free" && !showContactModal) {
+      setShowContactModal(true);
+      return;
+    }
+
+    // Validate contact info for free tier
+    if (selectedTier === "free" && showContactModal) {
+      if (!email.trim() || !phoneNumber.trim()) {
+        setError("Email and phone number are required");
+        return;
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setError("Please enter a valid email address");
+        return;
+      }
+
+      // Basic phone validation
+      const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+      if (!phoneRegex.test(phoneNumber.trim().replace(/\s/g, ''))) {
+        setError("Please enter a valid phone number (e.g., +1234567890)");
+        return;
+      }
+    }
+
+    setProcessing(true);
+
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier: selectedTier,
+          customAmount: selectedTier === "custom" ? customAmount : null,
+          paymentType,
+          email: selectedTier === "free" ? email.trim() : undefined,
+          phoneNumber: selectedTier === "free" ? phoneNumber.trim() : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout or success page
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (err: any) {
+      console.error('Error creating checkout session:', err);
+      setError(err.message || 'Failed to process payment. Please try again.');
+      setProcessing(false);
+    }
   };
 
   const isValid = selectedTier && (selectedTier !== "custom" || Number(customAmount) > 0);
@@ -265,15 +351,27 @@ export default function JoinPage() {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200">
+            <p className="text-[12px] sm:text-[14px] text-red-600 font-noto text-center">
+              {error}
+            </p>
+          </div>
+        )}
+
         {/* Continue Button */}
         <div className="flex justify-center mb-2 sm:mb-4">
           <button
             onClick={handleContinue}
-            disabled={!isValid}
-            className={`h-[44px] sm:h-[50px] px-6 sm:px-8 text-[11px] sm:text-[12px] tracking-[2px] uppercase font-noto font-bold bg-[#f52151] text-white transition-all duration-200 ${isValid ? "hover:bg-[#d11d45] active:scale-[0.98]" : "opacity-50 cursor-not-allowed"
-              }`}
+            disabled={!isValid || processing}
+            className={`h-[44px] sm:h-[50px] px-6 sm:px-8 text-[11px] sm:text-[12px] tracking-[2px] uppercase font-noto font-bold bg-[#f52151] text-white transition-all duration-200 ${
+              isValid && !processing 
+                ? "hover:bg-[#d11d45] active:scale-[0.98]" 
+                : "opacity-50 cursor-not-allowed"
+            }`}
           >
-            CONTINUE TO PAYMENT
+            {processing ? "PROCESSING..." : "CONTINUE TO PAYMENT"}
           </button>
         </div>
 
@@ -316,6 +414,24 @@ export default function JoinPage() {
         {/* Safe area spacer for iOS */}
         <div className="h-[env(safe-area-inset-bottom)]" />
       </footer>
+
+      {/* Contact Information Modal - Only for Free Tier */}
+      <ContactModal
+        isOpen={showContactModal && selectedTier === "free"}
+        email={email}
+        phoneNumber={phoneNumber}
+        error={error}
+        processing={processing}
+        onEmailChange={setEmail}
+        onPhoneChange={setPhoneNumber}
+        onClose={() => {
+          setShowContactModal(false);
+          setEmail("");
+          setPhoneNumber("");
+          setError(null);
+        }}
+        onSubmit={handleContinue}
+      />
     </div>
   );
 }

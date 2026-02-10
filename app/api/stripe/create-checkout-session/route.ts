@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCheckoutSession } from '@/app/lib/stripe';
 import * as airtableService from '@/app/lib/airtable';
+import { sendSMS, sendSMSDirect } from '@/app/lib/bird';
 
 /**
  * Create Stripe Checkout Session
@@ -52,6 +53,26 @@ export async function POST(request: NextRequest) {
           paymentType,
           status: 'completed',
         });
+
+        // Send welcome message for free tier
+        if (phoneNumber) {
+          try {
+            const welcomeMessage = `Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.`;
+            console.log(`📱 Sending welcome message to ${phoneNumber} (free tier)`);
+            // Use direct method as primary (matches curl format)
+            await sendSMSDirect(phoneNumber, welcomeMessage);
+            console.log('✅ Welcome message sent successfully');
+          } catch (smsError: any) {
+            console.error('⚠️  Failed to send welcome message:', smsError.message);
+            // Try alternative method
+            try {
+              await sendSMS(phoneNumber, `Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.`);
+              console.log('✅ Welcome message sent successfully (alternative method)');
+            } catch (retryError: any) {
+              console.error('❌ Failed to send welcome message (both methods):', retryError.message);
+            }
+          }
+        }
 
         // Redirect to success page with free tier info
         const successUrl = `${request.nextUrl.origin}/success?tier=free&amount=0`;

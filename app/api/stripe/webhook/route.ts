@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyWebhookSignature } from '@/app/lib/stripe';
 import * as airtableService from '@/app/lib/airtable';
+import { sendSMS, sendSMSDirect } from '@/app/lib/bird';
 import Stripe from 'stripe';
 
 /**
@@ -93,7 +94,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     const metadata = session.metadata || {};
     const tier = metadata.tier || 'unknown';
     const paymentType = metadata.paymentType as 'one-time' | 'monthly' || 'one-time';
-    const phoneNumber = metadata.phoneNumber || session.customer_details?.phone || undefined;
+    
+    // Extract phone number - prioritize customer_details (from Stripe Checkout) over metadata
+    // customer_details.phone is more reliable as it's collected during checkout
+    const phoneNumber = session.customer_details?.phone || 
+                       (metadata.phoneNumber && metadata.phoneNumber.trim() ? metadata.phoneNumber : undefined);
 
     // Extract customer information
     const email = session.customer_details?.email || undefined;
@@ -134,6 +139,32 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     }
 
     console.log('✅ Payment record saved to Airtable');
+
+    // Send welcome message if phone number is available
+    if (phoneNumber) {
+      try {
+        const welcomeMessage = `Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.`;
+        
+        console.log(`📱 Sending welcome message to ${phoneNumber}`);
+        // Use direct method as primary (matches curl format)
+        await sendSMSDirect(phoneNumber, welcomeMessage);
+        console.log('✅ Welcome message sent successfully');
+      } catch (smsError: any) {
+        // Log error but don't fail the webhook - payment is already processed
+        console.error('⚠️  Failed to send welcome message:', smsError.message);
+        
+        // Try alternative conversation method
+        try {
+          console.log('🔄 Trying alternative SMS sending method...');
+          await sendSMS(phoneNumber, `Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.`);
+          console.log('✅ Welcome message sent successfully (alternative method)');
+        } catch (retryError: any) {
+          console.error('❌ Failed to send welcome message (both methods):', retryError.message);
+        }
+      }
+    } else {
+      console.log('⚠️  No phone number available, skipping welcome message');
+    }
 
   } catch (error) {
     console.error('Error handling checkout session completed:', error);

@@ -12,11 +12,11 @@ export default function SuccessPage() {
 
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
-    const tier = searchParams.get("tier");
+    const tierParam = searchParams.get("tier");
     const amount = searchParams.get("amount");
 
     // If it's a free tier (no session_id)
-    if (tier === "free") {
+    if (tierParam === "free") {
       setSessionDetails({
         tier: "free",
         amount: 0,
@@ -48,13 +48,18 @@ export default function SuccessPage() {
     }
   }, [searchParams]);
 
+  // Get tier from searchParams directly for loading state check
+  const tierParam = searchParams.get("tier");
+
   if (loading) {
     return (
       <div className="min-h-screen min-h-dvh bg-white flex flex-col max-w-[480px] mx-auto items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#f52151] border-t-transparent"></div>
-        <div className="text-gray-600 text-sm font-noto font-medium">
-          Loading payment details...
-        </div>
+        {tierParam !== "free" && (
+          <div className="text-gray-600 text-sm font-noto font-medium">
+            Loading payment details...
+          </div>
+        )}
       </div>
     );
   }
@@ -97,34 +102,30 @@ export default function SuccessPage() {
           </div>
         ) : (
           <>
-            {/* Payment Details */}
-            {sessionDetails && (
+            {/* Payment Details - Hidden for Free Tier */}
+            {sessionDetails && sessionDetails.tier !== "free" && (
               <div className="mb-6 sm:mb-8">
                 <div className="bg-gray-50 border border-gray-200 p-6 sm:p-8">
                   <h3 className="text-[16px] sm:text-[18px] font-bold font-noto text-black mb-4">
                     Payment Details
                   </h3>
                   <div className="space-y-3">
-                    {sessionDetails.tier !== "free" && (
-                      <>
-                        <div className="flex justify-between items-center">
-                          <span className="text-[12px] sm:text-[14px] font-noto text-gray-600">
-                            Amount:
-                          </span>
-                          <span className="text-[14px] sm:text-[16px] font-bold font-noto text-black">
-                            ${sessionDetails.amount || 0}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-[12px] sm:text-[14px] font-noto text-gray-600">
-                            Payment Type:
-                          </span>
-                          <span className="text-[14px] sm:text-[16px] font-noto text-black capitalize">
-                            {sessionDetails.paymentType || "one-time"}
-                          </span>
-                        </div>
-                      </>
-                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[12px] sm:text-[14px] font-noto text-gray-600">
+                        Amount:
+                      </span>
+                      <span className="text-[14px] sm:text-[16px] font-bold font-noto text-black">
+                        ${sessionDetails.amount || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[12px] sm:text-[14px] font-noto text-gray-600">
+                        Payment Type:
+                      </span>
+                      <span className="text-[14px] sm:text-[16px] font-noto text-black capitalize">
+                        {sessionDetails.paymentType || "one-time"}
+                      </span>
+                    </div>
                     {sessionDetails.email && (
                       <div className="flex justify-between items-center">
                         <span className="text-[12px] sm:text-[14px] font-noto text-gray-600">

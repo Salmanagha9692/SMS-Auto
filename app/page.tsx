@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { SiteContent, defaultContent, getContent } from "./lib/content";
-import ContactModal from "./components/ContactModal";
 
 type Tier = "free" | "5" | "10" | "25" | "50" | "75" | "100" | "custom";
 type PaymentType = "one-time" | "monthly";
@@ -13,7 +12,6 @@ export default function JoinPage() {
   const [paymentType, setPaymentType] = useState<PaymentType>("monthly");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [showContactModal, setShowContactModal] = useState(false);
   const [content, setContent] = useState<SiteContent>(defaultContent);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -59,38 +57,21 @@ export default function JoinPage() {
     syncAutomation();
   }, []); // Run once on page load
 
-  // Reset contact modal when tier changes
+  // Reset contact info when tier changes
   useEffect(() => {
     if (selectedTier !== "free") {
-      setShowContactModal(false);
       setEmail("");
       setPhoneNumber("");
+      setError(null);
     }
   }, [selectedTier]);
 
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (showContactModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showContactModal]);
 
   const handleContinue = async () => {
     setError(null);
 
-    // For free tier, show contact modal first
-    if (selectedTier === "free" && !showContactModal) {
-      setShowContactModal(true);
-      return;
-    }
-
     // Validate contact info for free tier
-    if (selectedTier === "free" && showContactModal) {
+    if (selectedTier === "free") {
       if (!email.trim() || !phoneNumber.trim()) {
         setError("Email and phone number are required");
         return;
@@ -341,38 +322,76 @@ export default function JoinPage() {
           </div>
         )}
 
-        {/* Payment Frequency */}
-        <div className="mb-3 sm:mb-5">
-          <p className="text-[10px] sm:text-[11px] tracking-[1px] uppercase text-black mb-2 sm:mb-4 font-noto font-medium">
-            PAYMENT FREQUENCY
-          </p>
+        {/* Payment Frequency - Hidden for Free Tier */}
+        {selectedTier !== "free" && (
+          <div className="mb-3 sm:mb-5">
+            <p className="text-[10px] sm:text-[11px] tracking-[1px] uppercase text-black mb-2 sm:mb-4 font-noto font-medium">
+              PAYMENT FREQUENCY
+            </p>
 
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <button
-              onClick={() => setPaymentType("one-time")}
-              className={`min-h-[44px] h-[44px] sm:h-[46px] border-[1px] border-gray-900 bg-white transition-all duration-200 flex items-center justify-center ${paymentType === "one-time"
-                ? "border-[1px] !border-[#f52151] bg-gray-50"
-                : "hover:bg-[#f52151]/10 hover:!border-[#f52151] active:scale-[0.98]"
-                }`}
-            >
-              <span className="font-noto font-medium text-[13px] sm:text-[14px] text-black">
-                One-time
-              </span>
-            </button>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <button
+                onClick={() => setPaymentType("one-time")}
+                className={`min-h-[44px] h-[44px] sm:h-[46px] border-[1px] border-gray-900 bg-white transition-all duration-200 flex items-center justify-center ${paymentType === "one-time"
+                  ? "border-[1px] !border-[#f52151] bg-gray-50"
+                  : "hover:bg-[#f52151]/10 hover:!border-[#f52151] active:scale-[0.98]"
+                  }`}
+              >
+                <span className="font-noto font-medium text-[13px] sm:text-[14px] text-black">
+                  One-time
+                </span>
+              </button>
 
-            <button
-              onClick={() => setPaymentType("monthly")}
-              className={`min-h-[44px] h-[44px] sm:h-[46px] border-[1px] border-gray-900 bg-white transition-all duration-200 flex items-center justify-center ${paymentType === "monthly"
-                ? "border-[1px] !border-[#f52151] bg-gray-50"
-                : "hover:bg-[#f52151]/10 hover:!border-[#f52151] active:scale-[0.98]"
-                }`}
-            >
-              <span className="font-noto font-medium text-[13px] sm:text-[14px] text-[#f52151]">
-                Monthly
-              </span>
-            </button>
+              <button
+                onClick={() => setPaymentType("monthly")}
+                className={`min-h-[44px] h-[44px] sm:h-[46px] border-[1px] border-gray-900 bg-white transition-all duration-200 flex items-center justify-center ${paymentType === "monthly"
+                  ? "border-[1px] !border-[#f52151] bg-gray-50"
+                  : "hover:bg-[#f52151]/10 hover:!border-[#f52151] active:scale-[0.98]"
+                  }`}
+              >
+                <span className="font-noto font-medium text-[13px] sm:text-[14px] text-[#f52151]">
+                  Monthly
+                </span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Email and Phone Number Fields - Only for Free Tier */}
+        {selectedTier === "free" && (
+          <div className="mb-3 sm:mb-5">
+            {/* Email Input */}
+            <div className="mb-3 sm:mb-4">
+              <label className="block text-[10px] sm:text-[11px] tracking-[1px] uppercase text-black mb-2 font-noto font-medium">
+                EMAIL ADDRESS <span className="text-[#f52151]">*</span>
+              </label>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-[44px] sm:h-[48px] px-4 border-[1px] border-gray-900 bg-white font-noto text-[14px] sm:text-[15px] text-black focus:outline-none focus:!border-[#f52151] focus:border-[1px] focus:bg-gray-50 hover:!border-[#f52151] transition-all duration-200 placeholder:text-gray-400"
+              />
+            </div>
+
+            {/* Phone Number Input */}
+            <div className="mb-3 sm:mb-4">
+              <label className="block text-[10px] sm:text-[11px] tracking-[1px] uppercase text-black mb-2 font-noto font-medium">
+                PHONE NUMBER <span className="text-[#f52151]">*</span>
+              </label>
+              <input
+                type="tel"
+                placeholder="+1234567890"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="w-full h-[44px] sm:h-[48px] px-4 border-[1px] border-gray-900 bg-white font-noto text-[14px] sm:text-[15px] text-black focus:outline-none focus:!border-[#f52151] focus:border-[1px] focus:bg-gray-50 hover:!border-[#f52151] transition-all duration-200 placeholder:text-gray-400"
+              />
+              <p className="text-[9px] sm:text-[10px] text-gray-600 font-noto mt-1.5">
+                Please use the same mobile number from which you send text
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -383,18 +402,22 @@ export default function JoinPage() {
           </div>
         )}
 
-        {/* Continue Button */}
+        {/* Continue/Sign Up Button */}
         <div className="flex justify-center mb-2 sm:mb-4">
           <button
             onClick={handleContinue}
-            disabled={!isValid || processing}
+            disabled={!isValid || processing || (selectedTier === "free" && (!email.trim() || !phoneNumber.trim()))}
             className={`h-[44px] sm:h-[50px] px-6 sm:px-8 text-[11px] sm:text-[12px] tracking-[2px] uppercase font-noto font-bold bg-[#f52151] text-white transition-all duration-200 ${
-              isValid && !processing 
+              isValid && !processing && (selectedTier !== "free" || (email.trim() && phoneNumber.trim()))
                 ? "hover:bg-[#d11d45] active:scale-[0.98]" 
                 : "opacity-50 cursor-not-allowed"
             }`}
           >
-            {processing ? "PROCESSING..." : "CONTINUE TO PAYMENT"}
+            {processing 
+              ? "PROCESSING..." 
+              : selectedTier === "free" 
+                ? "SIGN UP" 
+                : "CONTINUE TO PAYMENT"}
           </button>
         </div>
 
@@ -438,23 +461,6 @@ export default function JoinPage() {
         <div className="h-[env(safe-area-inset-bottom)]" />
       </footer>
 
-      {/* Contact Information Modal - Only for Free Tier */}
-      <ContactModal
-        isOpen={showContactModal && selectedTier === "free"}
-        email={email}
-        phoneNumber={phoneNumber}
-        error={error}
-        processing={processing}
-        onEmailChange={setEmail}
-        onPhoneChange={setPhoneNumber}
-        onClose={() => {
-          setShowContactModal(false);
-          setEmail("");
-          setPhoneNumber("");
-          setError(null);
-        }}
-        onSubmit={handleContinue}
-      />
     </div>
   );
 }

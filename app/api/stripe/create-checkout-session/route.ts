@@ -4,6 +4,34 @@ import * as airtableService from '@/app/lib/airtable';
 import { sendSMS, sendSMSDirect } from '@/app/lib/bird';
 
 /**
+ * Get the base URL, checking for ngrok or forwarded host headers
+ */
+function getBaseUrl(request: NextRequest): string {
+  // Check for NGROK_URL environment variable first (highest priority)
+  if (process.env.NGROK_URL) {
+    return process.env.NGROK_URL;
+  }
+
+  // Check for forwarded host (ngrok, reverse proxy, etc.)
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+  
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  // Check the host header if it's not localhost
+  const host = request.headers.get('host');
+  if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+    const protocol = request.nextUrl.protocol === 'https:' ? 'https' : 'http';
+    return `${protocol}://${host}`;
+  }
+
+  // Fallback to request origin
+  return request.nextUrl.origin;
+}
+
+/**
  * Create Stripe Checkout Session
  * POST /api/stripe/create-checkout-session
  */
@@ -75,7 +103,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Redirect to success page with free tier info
-        const successUrl = `${request.nextUrl.origin}/success?tier=free&amount=0`;
+        const baseUrl = getBaseUrl(request);
+        const successUrl = `${baseUrl}/success?tier=free&amount=0`;
+        console.log('Free tier redirect URL:', successUrl);
         return NextResponse.json({ url: successUrl });
       } catch (error: any) {
         console.error('Error creating free tier record:', error);
@@ -86,8 +116,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get the base URL
-    const baseUrl = request.nextUrl.origin;
+    // Get the base URL - check for ngrok or forwarded host
+    const baseUrl = getBaseUrl(request);
     const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/cancel`;
 
@@ -97,6 +127,7 @@ export async function POST(request: NextRequest) {
       paymentType,
       email,
       phoneNumber,
+      baseUrl, // Log the base URL being used
     });
 
     // Create Stripe checkout session

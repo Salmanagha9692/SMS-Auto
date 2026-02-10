@@ -145,13 +145,10 @@ export default function SuccessPage() {
               <h3 className="text-[16px] sm:text-[18px] font-bold font-noto text-black mb-4">
                 What's Next?
               </h3>
-              <p className="text-[12px] sm:text-[14px] text-black font-noto leading-relaxed mb-4">
+              <p className="text-[12px] sm:text-[14px] text-black font-noto leading-relaxed">
                 You'll receive a welcome message shortly. Monthly care messages
                 from our makers will be sent to your phone. Reply STOP anytime to
                 opt out.
-              </p>
-              <p className="text-[12px] sm:text-[14px] text-black font-noto leading-relaxed">
-                A confirmation email has been sent with your payment details.
               </p>
             </div>
 

@@ -36,6 +36,29 @@ export default function JoinPage() {
     loadContent();
   }, []);
 
+  // Sync automation messages when page loads (to update phone numbers table)
+  useEffect(() => {
+    const syncAutomation = async () => {
+      try {
+        console.log('🔄 Syncing automation messages on page load...');
+        const response = await fetch('/api/bird/sync-automation');
+        const data = await response.json();
+        
+        if (data.success) {
+          console.log('✅ Automation messages synced successfully');
+          console.log(`   📊 Synced ${data.summary?.uniqueSenders || 0} phone numbers`);
+        } else {
+          console.error('⚠️  Failed to sync automation messages:', data.error);
+        }
+      } catch (error) {
+        console.error('❌ Error syncing automation messages:', error);
+        // Don't block the page if sync fails
+      }
+    };
+
+    syncAutomation();
+  }, []); // Run once on page load
+
   // Reset contact modal when tier changes
   useEffect(() => {
     if (selectedTier !== "free") {

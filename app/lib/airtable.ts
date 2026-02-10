@@ -716,3 +716,69 @@ export async function findPaymentBySubscriptionId(subscriptionId: string) {
   }
 }
 
+/**
+ * Get all payment records with active or completed status
+ */
+export async function getActivePayments() {
+  try {
+    const paymentsTable = await findOrCreatePaymentsTable();
+    const tableName = paymentsTable.name || 'Payments';
+    
+    // Get records with status "active" or "completed"
+    const records = await getRecords(tableName, {
+      filterByFormula: `OR({Status} = "active", {Status} = "completed")`
+    });
+
+    return records.records || [];
+  } catch (error) {
+    console.error('Error getting active payments:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if phone number has STOP message (case-insensitive)
+ * Tries multiple phone number formats to find the record
+ */
+export async function hasStopMessage(phoneNumber: string): Promise<boolean> {
+  try {
+    if (!phoneNumber) {
+      return false;
+    }
+
+    // Normalize phone number - try with and without +
+    const normalizedPhone = phoneNumber.trim();
+    const phoneWithPlus = normalizedPhone.startsWith('+') 
+      ? normalizedPhone 
+      : `+${normalizedPhone}`;
+    const phoneWithoutPlus = normalizedPhone.startsWith('+')
+      ? normalizedPhone.substring(1)
+      : normalizedPhone;
+
+    // Try to find phone record with different formats
+    let phoneRecord = await findByPhone(phoneWithPlus);
+    
+    if (!phoneRecord) {
+      phoneRecord = await findByPhone(phoneWithoutPlus);
+    }
+
+    if (!phoneRecord) {
+      phoneRecord = await findByPhone(normalizedPhone);
+    }
+    
+    if (!phoneRecord) {
+      return false; // No record means no STOP message
+    }
+
+    const message = phoneRecord.fields?.['Message'] || '';
+    const messageUpper = message.toString().trim().toUpperCase();
+    
+    // Check if message is "STOP" (case-insensitive)
+    return messageUpper === 'STOP';
+  } catch (error) {
+    console.error('Error checking STOP message:', error);
+    // If error, assume no STOP to be safe (don't block messages)
+    return false;
+  }
+}
+

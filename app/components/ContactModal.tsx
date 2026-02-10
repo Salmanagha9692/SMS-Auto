@@ -83,6 +83,9 @@ export default function ContactModal({
                 !phoneNumber.trim() ? "border-red-300 focus:ring-red-300" : "border-gray-300"
               }`}
             />
+            <p className="text-[12px] sm:text-[13px] text-gray-600 font-noto mt-1.5">
+              Please use the same mobile number from which you send text
+            </p>
             {!phoneNumber.trim() && (
               <p className="text-[12px] sm:text-[13px] text-red-600 font-noto mt-1.5">
                 Phone number is required

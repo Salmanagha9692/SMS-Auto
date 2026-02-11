@@ -50,6 +50,11 @@ export async function createCheckoutSession(params: {
     enabled: true,
   };
 
+  // Add shipping address collection
+  sessionParams.shipping_address_collection = {
+    allowed_countries: ['US', 'CA', 'GB', 'AU', 'NZ'], // Add more countries as needed
+  };
+
   // Configure line items based on payment type
   if (paymentType === 'monthly') {
     // Create subscription with price_data

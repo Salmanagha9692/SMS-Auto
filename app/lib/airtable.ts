@@ -452,6 +452,41 @@ export async function findOrCreatePaymentsTable() {
         description: 'Customer phone number'
       },
       {
+        name: 'Name',
+        type: 'singleLineText',
+        description: 'Customer name from shipping address'
+      },
+      {
+        name: 'Address Line 1',
+        type: 'singleLineText',
+        description: 'Shipping address line 1'
+      },
+      {
+        name: 'Address Line 2',
+        type: 'singleLineText',
+        description: 'Shipping address line 2'
+      },
+      {
+        name: 'City',
+        type: 'singleLineText',
+        description: 'Shipping city'
+      },
+      {
+        name: 'State',
+        type: 'singleLineText',
+        description: 'Shipping state/province'
+      },
+      {
+        name: 'Postal Code',
+        type: 'singleLineText',
+        description: 'Shipping postal/zip code'
+      },
+      {
+        name: 'Country',
+        type: 'singleLineText',
+        description: 'Shipping country'
+      },
+      {
         name: 'Tier',
         type: 'singleSelect',
         options: {
@@ -562,6 +597,13 @@ export async function findOrCreatePaymentsTable() {
 export async function createPaymentRecord(paymentData: {
   email?: string;
   phoneNumber?: string;
+  name?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
   tier: string;
   amount: number;
   paymentType: 'one-time' | 'monthly';
@@ -586,6 +628,13 @@ export async function createPaymentRecord(paymentData: {
 
     if (paymentData.email) fields['Email'] = paymentData.email;
     if (paymentData.phoneNumber) fields['Phone Number'] = paymentData.phoneNumber;
+    if (paymentData.name) fields['Name'] = paymentData.name;
+    if (paymentData.addressLine1) fields['Address Line 1'] = paymentData.addressLine1;
+    if (paymentData.addressLine2) fields['Address Line 2'] = paymentData.addressLine2;
+    if (paymentData.city) fields['City'] = paymentData.city;
+    if (paymentData.state) fields['State'] = paymentData.state;
+    if (paymentData.postalCode) fields['Postal Code'] = paymentData.postalCode;
+    if (paymentData.country) fields['Country'] = paymentData.country;
     if (paymentData.stripeCustomerId) fields['Stripe Customer ID'] = paymentData.stripeCustomerId;
     if (paymentData.stripeSubscriptionId) fields['Stripe Subscription ID'] = paymentData.stripeSubscriptionId;
     if (paymentData.stripePaymentIntentId) fields['Stripe Payment Intent ID'] = paymentData.stripePaymentIntentId;
@@ -605,6 +654,13 @@ export async function createPaymentRecord(paymentData: {
 export async function updatePaymentRecord(recordId: string, paymentData: {
   email?: string;
   phoneNumber?: string;
+  name?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
   tier?: string;
   amount?: number;
   paymentType?: 'one-time' | 'monthly';
@@ -624,6 +680,13 @@ export async function updatePaymentRecord(recordId: string, paymentData: {
 
     if (paymentData.email !== undefined) fields['Email'] = paymentData.email;
     if (paymentData.phoneNumber !== undefined) fields['Phone Number'] = paymentData.phoneNumber;
+    if (paymentData.name !== undefined) fields['Name'] = paymentData.name;
+    if (paymentData.addressLine1 !== undefined) fields['Address Line 1'] = paymentData.addressLine1;
+    if (paymentData.addressLine2 !== undefined) fields['Address Line 2'] = paymentData.addressLine2;
+    if (paymentData.city !== undefined) fields['City'] = paymentData.city;
+    if (paymentData.state !== undefined) fields['State'] = paymentData.state;
+    if (paymentData.postalCode !== undefined) fields['Postal Code'] = paymentData.postalCode;
+    if (paymentData.country !== undefined) fields['Country'] = paymentData.country;
     if (paymentData.tier !== undefined) fields['Tier'] = paymentData.tier;
     if (paymentData.amount !== undefined) fields['Amount'] = paymentData.amount;
     if (paymentData.paymentType !== undefined) fields['Payment Type'] = paymentData.paymentType;
@@ -732,6 +795,71 @@ export async function getActivePayments() {
     return records.records || [];
   } catch (error) {
     console.error('Error getting active payments:', error);
+    throw error;
+  }
+}
+
+/**
+ * Find payment record by phone number
+ * Tries multiple phone number formats to find the record
+ */
+export async function findPaymentByPhone(phoneNumber: string) {
+  try {
+    if (!phoneNumber) {
+      return null;
+    }
+
+    const paymentsTable = await findOrCreatePaymentsTable();
+    const tableName = paymentsTable.name || 'Payments';
+    
+    // Normalize phone number - try with and without +
+    const normalizedPhone = phoneNumber.trim();
+    const phoneWithPlus = normalizedPhone.startsWith('+') 
+      ? normalizedPhone 
+      : `+${normalizedPhone}`;
+    const phoneWithoutPlus = normalizedPhone.startsWith('+')
+      ? normalizedPhone.substring(1)
+      : normalizedPhone;
+
+    // Try to find payment record with different formats
+    let escapedPhone = phoneWithPlus.replace(/"/g, '\\"');
+    let records = await getRecords(tableName, {
+      filterByFormula: `{Phone Number} = "${escapedPhone}"`
+    });
+
+    if (records.records && records.records.length > 0) {
+      // Return the most recent active subscription, or the most recent one
+      const sorted = records.records.sort((a: any, b: any) => {
+        const aTime = new Date(a.fields?.['Last Updated'] || a.fields?.['Created At'] || 0).getTime();
+        const bTime = new Date(b.fields?.['Last Updated'] || b.fields?.['Created At'] || 0).getTime();
+        return bTime - aTime;
+      });
+      
+      // Prefer active subscriptions
+      const active = sorted.find((r: any) => r.fields?.['Status'] === 'active');
+      return active || sorted[0];
+    }
+
+    // Try without plus
+    escapedPhone = phoneWithoutPlus.replace(/"/g, '\\"');
+    records = await getRecords(tableName, {
+      filterByFormula: `{Phone Number} = "${escapedPhone}"`
+    });
+
+    if (records.records && records.records.length > 0) {
+      const sorted = records.records.sort((a: any, b: any) => {
+        const aTime = new Date(a.fields?.['Last Updated'] || a.fields?.['Created At'] || 0).getTime();
+        const bTime = new Date(b.fields?.['Last Updated'] || b.fields?.['Created At'] || 0).getTime();
+        return bTime - aTime;
+      });
+      
+      const active = sorted.find((r: any) => r.fields?.['Status'] === 'active');
+      return active || sorted[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error finding payment by phone:', error);
     throw error;
   }
 }

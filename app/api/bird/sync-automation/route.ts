@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as airtableService from '@/app/lib/airtable';
+import { stripe } from '@/app/lib/stripe';
 
 /**
  * Bird.com Automation Messages Sync to Airtable
@@ -92,11 +93,12 @@ export async function GET(request: NextRequest) {
 
     console.log(`👥 Found ${uniqueSenders.length} unique senders`);
 
-    // Sync to Airtable
+    // Sync to Airtable and process UNSUB messages
     const results = {
       created: 0,
       updated: 0,
       errors: 0,
+      unsubscribed: 0,
       senders: [] as any[]
     };
 
@@ -107,6 +109,10 @@ export async function GET(request: NextRequest) {
         try {
           const phoneNumber = sender.senderNumber;
           const message = sender.messageText;
+          const messageUpper = message.trim().toUpperCase();
+
+          // Check if message is UNSUB or UNSUBSCRIBE
+          const isUnsub = messageUpper === 'UNSUB' || messageUpper === 'UNSUBSCRIBE';
 
           // Check if phone exists in Airtable
           const existingRecord = await airtableService.findByPhone(phoneNumber);
@@ -123,11 +129,68 @@ export async function GET(request: NextRequest) {
             console.log(`   🆕 Created: ${phoneNumber}`);
           }
 
+          // Process UNSUB automatically
+          if (isUnsub) {
+            console.log(`   🔔 UNSUB detected from ${phoneNumber} - Processing unsubscription...`);
+            
+            try {
+              // Find payment record
+              const paymentRecord = await airtableService.findPaymentByPhone(phoneNumber);
+              
+              if (paymentRecord) {
+                const tier = paymentRecord.fields?.['Tier'];
+                const status = paymentRecord.fields?.['Status'];
+                const stripeSubscriptionId = paymentRecord.fields?.['Stripe Subscription ID'];
+
+                // Only process if they have an active paid subscription
+                if (tier && tier !== 'free' && status === 'active') {
+                  // Cancel Stripe subscription if it exists
+                  if (stripeSubscriptionId && typeof stripeSubscriptionId === 'string') {
+                    try {
+                      console.log(`      💳 Cancelling Stripe subscription: ${stripeSubscriptionId}`);
+                      await stripe.subscriptions.cancel(stripeSubscriptionId);
+                      console.log(`      ✅ Stripe subscription cancelled`);
+                    } catch (stripeError: any) {
+                      console.error(`      ⚠️  Error cancelling Stripe subscription:`, stripeError.message);
+                      // Continue with Airtable update even if Stripe fails
+                    }
+                  }
+
+                  // Update Airtable to free tier (exactly like free tier signup)
+                  console.log(`      📝 Updating to free tier in Airtable...`);
+                  await airtableService.updatePaymentRecord(paymentRecord.id, {
+                    tier: 'free',
+                    amount: 0,
+                    status: 'completed',
+                    // Clear all Stripe-related fields
+                    stripeCustomerId: '',
+                    stripeSubscriptionId: '',
+                    stripePaymentIntentId: '',
+                    stripeSessionId: '',
+                  });
+
+                  results.unsubscribed++;
+                  console.log(`      ✅ Successfully unsubscribed ${phoneNumber} - moved to free tier`);
+                  
+                  // Note: Confirmation message is sent automatically by Bird.com dashboard automation
+                } else {
+                  console.log(`      ℹ️  No active paid subscription found for ${phoneNumber}`);
+                }
+              } else {
+                console.log(`      ℹ️  No payment record found for ${phoneNumber}`);
+              }
+            } catch (unsubError: any) {
+              console.error(`      ❌ Error processing unsubscription for ${phoneNumber}:`, unsubError.message);
+              // Don't count as error in main results, just log it
+            }
+          }
+
           results.senders.push({
             phone: phoneNumber,
             message: message,
             receivedAt: sender.receivedAt,
-            status: existingRecord ? 'updated' : 'created'
+            status: existingRecord ? 'updated' : 'created',
+            unsubProcessed: isUnsub
           });
 
         } catch (error: any) {
@@ -150,6 +213,7 @@ export async function GET(request: NextRequest) {
     console.log(`📊 Sync Results:`);
     console.log(`   🆕 Created: ${results.created}`);
     console.log(`   🔄 Updated: ${results.updated}`);
+    console.log(`   🔔 Unsubscribed: ${results.unsubscribed}`);
     console.log(`   ❌ Errors: ${results.errors}`);
     console.log('═══════════════════════════════════════════════════════════\n');
 
@@ -161,6 +225,7 @@ export async function GET(request: NextRequest) {
         uniqueSenders: uniqueSenders.length,
         created: results.created,
         updated: results.updated,
+        unsubscribed: results.unsubscribed,
         errors: results.errors
       },
       senders: results.senders

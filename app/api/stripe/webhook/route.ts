@@ -107,6 +107,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     const paymentIntentId = session.payment_intent as string || undefined;
     const amount = session.amount_total ? session.amount_total / 100 : 0;
 
+    // Extract shipping address information
+    const shipping = (session as any).shipping;
+    const shippingAddress = shipping?.address;
+    const name = shipping?.name || undefined;
+    const addressLine1 = shippingAddress?.line1 || undefined;
+    const addressLine2 = shippingAddress?.line2 || undefined;
+    const city = shippingAddress?.city || undefined;
+    const state = shippingAddress?.state || undefined;
+    const postalCode = shippingAddress?.postal_code || undefined;
+    const country = shippingAddress?.country || undefined;
+
     // Find existing payment record by session ID
     const existingRecord = await airtableService.findPaymentBySessionId(session.id);
 
@@ -116,6 +127,13 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       await airtableService.updatePaymentRecord(existingRecord.id, {
         email,
         phoneNumber,
+        name,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        postalCode,
+        country,
         stripeCustomerId: customerId,
         stripeSubscriptionId: subscriptionId,
         stripePaymentIntentId: paymentIntentId,
@@ -127,6 +145,13 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       await airtableService.createPaymentRecord({
         email,
         phoneNumber,
+        name,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        postalCode,
+        country,
         tier,
         amount,
         paymentType,

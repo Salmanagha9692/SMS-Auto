@@ -97,8 +97,8 @@ export default function JoinPage() {
 
     // Validate contact info for free tier
     if (selectedTier === "free") {
-      if (!email.trim() || !phoneNumber.trim()) {
-        setError("Email and phone number are required");
+      if (!email.trim()) {
+        setError("Email is required");
         return;
       }
 
@@ -109,25 +109,28 @@ export default function JoinPage() {
         return;
       }
 
-      // Basic phone validation
-      const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-      if (!phoneRegex.test(phoneNumber.trim().replace(/\s/g, ''))) {
-        setError("Please enter a valid phone number (e.g., +1234567890)");
-        return;
-      }
+      // Phone number is automatically retrieved from localStorage (from LOVE message link)
+      // No phone validation needed - it comes from the SMS link
     }
 
     setProcessing(true);
 
     try {
-      // Get phone number from localStorage if available (for Stripe checkout pre-fill)
+      // Get phone number from localStorage (from LOVE message link)
+      // For free tier, phone comes from localStorage, not user input
       const checkoutPhone = typeof window !== 'undefined' 
         ? localStorage.getItem('checkoutPhoneNumber') || phoneNumber.trim() 
         : phoneNumber.trim();
       
       console.log('📱 Phone number for checkout:', checkoutPhone);
       console.log('📱 localStorage phone:', typeof window !== 'undefined' ? localStorage.getItem('checkoutPhoneNumber') : 'N/A');
-      console.log('📱 Form phone:', phoneNumber.trim());
+      
+      // For free tier, ensure we have phone from localStorage
+      if (selectedTier === "free" && !checkoutPhone) {
+        setError("Phone number is required. Please use the link from your SMS message.");
+        setProcessing(false);
+        return;
+      }
 
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
@@ -408,22 +411,8 @@ export default function JoinPage() {
               />
             </div>
 
-            {/* Phone Number Input */}
-            <div className="mb-3 sm:mb-4">
-              <label className="block text-[10px] sm:text-[11px] tracking-[1px] uppercase text-black mb-2 font-noto font-medium">
-                PHONE NUMBER <span className="text-[#f52151]">*</span>
-              </label>
-              <input
-                type="tel"
-                placeholder="+1234567890"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full h-[44px] sm:h-[48px] px-4 border-[1px] border-gray-900 bg-white font-noto text-[14px] sm:text-[15px] text-black focus:outline-none focus:!border-[#f52151] focus:border-[1px] focus:bg-gray-50 hover:!border-[#f52151] transition-all duration-200 placeholder:text-gray-400"
-              />
-              <p className="text-[9px] sm:text-[10px] text-gray-600 font-noto mt-1.5">
-                Please use the same mobile number from which you send text
-              </p>
-            </div>
+            {/* Phone Number Input - Hidden for free tier, phone comes from localStorage */}
+            {/* Phone number is automatically retrieved from localStorage (from LOVE message link) */}
           </div>
         )}
 
@@ -440,9 +429,9 @@ export default function JoinPage() {
         <div className="flex justify-center mb-2 sm:mb-4">
           <button
             onClick={handleContinue}
-            disabled={!isValid || processing || (selectedTier === "free" && (!email.trim() || !phoneNumber.trim()))}
+            disabled={!isValid || processing || (selectedTier === "free" && !email.trim())}
             className={`h-[44px] sm:h-[50px] px-6 sm:px-8 text-[11px] sm:text-[12px] tracking-[2px] uppercase font-noto font-bold bg-[#f52151] text-white transition-all duration-200 ${
-              isValid && !processing && (selectedTier !== "free" || (email.trim() && phoneNumber.trim()))
+              isValid && !processing && (selectedTier !== "free" || email.trim())
                 ? "hover:bg-[#d11d45] active:scale-[0.98]" 
                 : "opacity-50 cursor-not-allowed"
             }`}

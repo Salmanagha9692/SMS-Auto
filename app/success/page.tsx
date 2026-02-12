@@ -11,6 +11,16 @@ export default function SuccessPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Clear phone number from localStorage when user reaches success page
+    // Payment is complete, no need to keep phone number stored
+    if (typeof window !== 'undefined') {
+      const storedPhone = localStorage.getItem('checkoutPhoneNumber');
+      if (storedPhone) {
+        localStorage.removeItem('checkoutPhoneNumber');
+        console.log('🧹 Cleared phone number from localStorage (payment complete)');
+      }
+    }
+
     const sessionId = searchParams.get("session_id");
     const tierParam = searchParams.get("tier");
     const amount = searchParams.get("amount");

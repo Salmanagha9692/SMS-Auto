@@ -34,6 +34,31 @@ export default function JoinPage() {
     loadContent();
   }, []);
 
+  // Read phone number from URL parameter (from LOVE message link) and save to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const phoneParam = urlParams.get('phone');
+      if (phoneParam) {
+        // Decode the phone number (it's URL encoded, e.g., %2B becomes +)
+        const decodedPhone = decodeURIComponent(phoneParam);
+        setPhoneNumber(decodedPhone);
+        // Save to localStorage for use in Stripe checkout
+        localStorage.setItem('checkoutPhoneNumber', decodedPhone);
+        console.log('📱 Phone number from URL saved to localStorage:', decodedPhone);
+        // Auto-select free tier when phone comes from LOVE message
+        setSelectedTier('free');
+      } else {
+        // Check if phone number exists in localStorage (from previous visit)
+        const storedPhone = localStorage.getItem('checkoutPhoneNumber');
+        if (storedPhone) {
+          setPhoneNumber(storedPhone);
+          console.log('📱 Phone number loaded from localStorage:', storedPhone);
+        }
+      }
+    }
+  }, []);
+
   // Sync automation messages when page loads (to update phone numbers table)
   useEffect(() => {
     const syncAutomation = async () => {
@@ -95,6 +120,15 @@ export default function JoinPage() {
     setProcessing(true);
 
     try {
+      // Get phone number from localStorage if available (for Stripe checkout pre-fill)
+      const checkoutPhone = typeof window !== 'undefined' 
+        ? localStorage.getItem('checkoutPhoneNumber') || phoneNumber.trim() 
+        : phoneNumber.trim();
+      
+      console.log('📱 Phone number for checkout:', checkoutPhone);
+      console.log('📱 localStorage phone:', typeof window !== 'undefined' ? localStorage.getItem('checkoutPhoneNumber') : 'N/A');
+      console.log('📱 Form phone:', phoneNumber.trim());
+
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -104,8 +138,8 @@ export default function JoinPage() {
           tier: selectedTier,
           customAmount: selectedTier === "custom" ? customAmount : null,
           paymentType,
-          email: selectedTier === "free" ? email.trim() : undefined,
-          phoneNumber: selectedTier === "free" ? phoneNumber.trim() : undefined,
+          email: email.trim() || undefined,
+          phoneNumber: checkoutPhone || undefined,
         }),
       });
 

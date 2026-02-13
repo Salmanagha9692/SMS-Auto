@@ -245,6 +245,24 @@ This document describes the complete user journey from SMS interaction to paymen
 
 ### Flow 7: Monthly Message Delivery
 
+**Option A: Via Admin Panel (Recommended)**
+1. Admin navigates to `/admin` page
+2. Scrolls to "Send Monthly Messages" button (below Save Changes)
+3. Clicks "📤 Send Monthly Messages" button
+4. System calls: `GET /api/bird/send-monthly-messages`
+5. Fetches active/completed payments from Airtable
+6. For each payment:
+   - Checks phone exists in Phone Numbers table
+   - Checks for STOP message
+   - Sends monthly care message if eligible
+7. Displays delivery summary in admin panel:
+   - Total Payments
+   - Eligible subscribers
+   - Messages Sent
+   - Skipped (if any)
+   - Errors (if any)
+
+**Option B: Via API Direct Call**
 1. System calls: `GET /api/bird/send-monthly-messages`
 2. Fetches active/completed payments from Airtable
 3. For each payment:
@@ -291,9 +309,20 @@ This document describes the complete user journey from SMS interaction to paymen
 **GET /api/bird/send-monthly-messages**
 - Sends monthly messages to eligible subscribers
 - Query: `?dryRun=true` for testing
+- Can be triggered via admin panel or direct API call
 
 **GET /api/bird/sync-automation**
 - Syncs automation messages from Bird.com to Airtable
+
+### Admin Panel
+
+**GET /admin**
+- Admin panel for content management and monthly message sending
+- Features:
+  - Edit header and hero section content
+  - Save/Reset content changes
+  - Send monthly messages with one click
+  - View delivery summary after sending
 
 ---
 
@@ -429,6 +458,15 @@ NGROK_URL=https://selectable-equiprobable-andrea.ngrok-free.dev
 - Last message ≠ "STOP"
 
 **How to Run:**
+
+**Option 1: Via Admin Panel (Recommended)**
+1. Navigate to `/admin` page
+2. Scroll to "Send Monthly Messages" section (below Save Changes button)
+3. Click "📤 Send Monthly Messages" button
+4. Wait for processing to complete
+5. View delivery summary displayed on the page
+
+**Option 2: Via API Direct Call**
 ```bash
 # Test (dry run)
 GET /api/bird/send-monthly-messages?dryRun=true
@@ -439,7 +477,8 @@ GET /api/bird/send-monthly-messages
 
 **Schedule:**
 - Run monthly (e.g., 1st of each month)
-- Cron: `0 10 1 * * curl https://your-domain.com/api/bird/send-monthly-messages`
+- **Via Admin Panel:** Admin manually clicks button on scheduled date
+- **Via Cron:** `0 10 1 * * curl https://your-domain.com/api/bird/send-monthly-messages`
 
 ---
 
@@ -487,6 +526,14 @@ GET /api/bird/send-monthly-messages
 
 ### Test Monthly Messages
 
+**Via Admin Panel:**
+1. Navigate to `/admin` page
+2. Create test payments in Airtable
+3. Add phone numbers to Phone Numbers table
+4. Click "📤 Send Monthly Messages" button
+5. Review delivery summary displayed on page
+
+**Via API:**
 1. Create test payments in Airtable
 2. Add phone numbers to Phone Numbers table
 3. Run with `?dryRun=true` first
@@ -568,11 +615,14 @@ GET /api/bird/send-monthly-messages
 2. Check phone exists in Phone Numbers table
 3. Verify no STOP message
 4. Review API response for errors
+5. Check admin panel for error messages
 
 **Solution:**
+- Use admin panel to see detailed error messages
 - Run with `?dryRun=true` to see eligibility
 - Check Airtable records for correct status
 - Verify phone numbers are in correct format
+- Check browser console for API errors
 
 ---
 
@@ -625,6 +675,55 @@ GET /api/bird/send-monthly-messages
    - Replies sent in same conversation thread
    - Uses conversation ID from webhook payload
    - Falls back to phone-based conversation
+
+---
+
+---
+
+## Admin Panel
+
+### Overview
+
+The admin panel (`/admin`) provides a user-friendly interface for managing site content and sending monthly messages.
+
+### Features
+
+1. **Content Management**
+   - Edit header section (logo URL, alt text)
+   - Edit hero section (title, subtitle)
+   - Save changes to Airtable
+   - Reset to default content
+   - Live preview of changes
+
+2. **Monthly Message Sending**
+   - One-click button to send monthly messages
+   - Real-time loading indicator
+   - Detailed delivery summary:
+     - Total Payments processed
+     - Eligible subscribers count
+     - Messages successfully sent
+     - Skipped subscribers (with reasons)
+     - Errors (if any)
+   - Error handling with clear messages
+
+### Usage
+
+1. Navigate to `/admin` in your browser
+2. Edit content as needed (optional)
+3. Click "Save Changes" if you made content edits
+4. Scroll to "Send Monthly Messages" button
+5. Click "📤 Send Monthly Messages"
+6. Wait for processing (button shows loading state)
+7. Review delivery summary displayed below button
+
+### Monthly Message Summary
+
+After clicking "Send Monthly Messages", the admin panel displays:
+- **Total Payments:** Number of active/completed payment records found
+- **Eligible:** Number of subscribers eligible to receive messages
+- **Sent:** Number of messages successfully sent
+- **Skipped:** Number of subscribers skipped (no phone, STOP message, etc.)
+- **Errors:** Number of errors encountered (if any)
 
 ---
 

@@ -125,7 +125,9 @@ export async function GET(request: NextRequest) {
         if (!dryRun) {
           // Step 6: Send monthly message
           try {
-            const monthlyMessage = `Thank you for being part of Community Weft. This is your monthly care message from our makers. We appreciate your continued support. Reply STOP anytime to opt out.`;
+            // Get message template from Airtable
+            const messages = await airtableService.getMessageTemplates();
+            const monthlyMessage = messages.monthlyMessage;
             
             console.log(`   📤 Sending monthly message to ${phoneWithPlus}...`);
             await sendSMSDirect(phoneWithPlus, monthlyMessage);

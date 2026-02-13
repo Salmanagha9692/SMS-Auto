@@ -87,6 +87,14 @@ export default function AdminPage() {
     }));
   };
 
+  // Update messages
+  const updateMessage = (field: keyof SiteContent["messages"], value: string) => {
+    setContent((prev) => ({
+      ...prev,
+      messages: { ...prev.messages, [field]: value },
+    }));
+  };
+
   // Send monthly messages
   const handleSendMonthlyMessages = async () => {
     try {
@@ -233,6 +241,95 @@ export default function AdminPage() {
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   This will be displayed in pink/magenta, italicized below the title
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Message Templates Section */}
+          <section className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">
+              Message Templates
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  LOVE Reply Message
+                </label>
+                <textarea
+                  value={content.messages.loveReply}
+                  onChange={(e) => updateMessage("loveReply", e.target.value)}
+                  placeholder="Thanks for joining The Weft! Click here: {link}"
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Auto-reply sent when user texts "LOVE". Use {"{link}"} as placeholder for the welcome link.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  UNSUB Reply Message
+                </label>
+                <textarea
+                  value={content.messages.unsubReply}
+                  onChange={(e) => updateMessage("unsubReply", e.target.value)}
+                  placeholder="You have been successfully unsubscribed. You are now free tier user. Thank you for being part of The Weft!"
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Auto-reply sent when user texts "UNSUB" or "UNSUBSCRIBE".
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  STOP Reply Message
+                </label>
+                <textarea
+                  value={content.messages.stopReply}
+                  onChange={(e) => updateMessage("stopReply", e.target.value)}
+                  placeholder="You have been successfully unsubscribed. You will no longer receive messages. Reply LOVE to rejoin."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Auto-reply sent when user texts "STOP".
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Welcome Message
+                </label>
+                <textarea
+                  value={content.messages.welcomeMessage}
+                  onChange={(e) => updateMessage("welcomeMessage", e.target.value)}
+                  placeholder="Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out."
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Message sent after successful payment or free tier signup.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Monthly Message
+                </label>
+                <textarea
+                  value={content.messages.monthlyMessage}
+                  onChange={(e) => updateMessage("monthlyMessage", e.target.value)}
+                  placeholder="Thank you for being part of Community Weft. This is your monthly care message from our makers. We appreciate your continued support. Reply STOP anytime to opt out."
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Monthly care message sent to all eligible subscribers.
                 </p>
               </div>
             </div>

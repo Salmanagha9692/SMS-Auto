@@ -168,7 +168,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     // Send welcome message if phone number is available
     if (phoneNumber) {
       try {
-        const welcomeMessage = `Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.`;
+        // Get message template from Airtable
+        const messages = await airtableService.getMessageTemplates();
+        const welcomeMessage = messages.welcomeMessage;
         
         console.log(`📱 Sending welcome message to ${phoneNumber}`);
         // Use direct method as primary (matches curl format)
@@ -181,7 +183,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         // Try alternative conversation method
         try {
           console.log('🔄 Trying alternative SMS sending method...');
-          await sendSMS(phoneNumber, `Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.`);
+          const messages = await airtableService.getMessageTemplates();
+          await sendSMS(phoneNumber, messages.welcomeMessage);
           console.log('✅ Welcome message sent successfully (alternative method)');
         } catch (retryError: any) {
           console.error('❌ Failed to send welcome message (both methods):', retryError.message);

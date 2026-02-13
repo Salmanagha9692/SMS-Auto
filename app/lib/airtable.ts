@@ -163,7 +163,8 @@ export async function findOrCreateContentTable() {
         options: {
           choices: [
             { name: 'header' },
-            { name: 'hero' }
+            { name: 'hero' },
+            { name: 'messages' }
           ]
         }
       },
@@ -190,7 +191,7 @@ export async function findOrCreateContentTable() {
  * @param contentData.header - Header content with logoUrl and logoAlt
  * @param contentData.hero - Hero content with title and subtitle (no highlights)
  */
-export async function updateContent(contentData: { header?: any; hero?: { title: string; subtitle: string } }) {
+export async function updateContent(contentData: { header?: any; hero?: { title: string; subtitle: string }; messages?: any }) {
   try {
     // Get or create content table
     const contentTable = await findOrCreateContentTable();
@@ -244,6 +245,39 @@ export async function updateContent(contentData: { header?: any; hero?: { title:
       }
     }
 
+    // Update messages if provided
+    if (contentData.messages) {
+      try {
+        const messagesRecords = await getRecords(tableName, {
+          filterByFormula: `{Section} = "messages"`
+        });
+
+        const messagesJsonData = JSON.stringify(contentData.messages);
+
+        if (messagesRecords.records && messagesRecords.records.length > 0) {
+          const recordId = messagesRecords.records[0].id;
+          results.messages = await updateRecord(tableName, recordId, {
+            'Section': 'messages',
+            'JSON Data': messagesJsonData
+          });
+        } else {
+          results.messages = await createRecord(tableName, {
+            'Name': 'messages',
+            'Section': 'messages',
+            'JSON Data': messagesJsonData
+          });
+        }
+      } catch (error: any) {
+        // Check if this is the specific error about invalid select options
+        if (error.response?.data?.error?.type === 'INVALID_MULTIPLE_CHOICE_OPTIONS') {
+          const errorMessage = `The "messages" option is not available in the Section field. Please add "messages" as a valid option in the Airtable "Section" field settings, or delete and recreate the Content table to include it automatically.`;
+          console.error(errorMessage);
+          throw new Error(errorMessage);
+        }
+        throw error;
+      }
+    }
+
     return results;
   } catch (error) {
     console.error('Error updating content:', error);
@@ -256,6 +290,7 @@ export async function updateContent(contentData: { header?: any; hero?: { title:
  * Returns content with the new structure:
  * - hero: { title: string, subtitle: string } (no highlights)
  * - header: { logoUrl: string, logoAlt: string }
+ * - messages: { loveReply, unsubReply, stopReply, welcomeMessage, monthlyMessage }
  */
 export async function getContent() {
   try {
@@ -264,9 +299,10 @@ export async function getContent() {
     
     const records = await getRecords(tableName);
     
-    const content: { header: any; hero: any } = {
+    const content: { header: any; hero: any; messages: any } = {
       header: null,
-      hero: null
+      hero: null,
+      messages: null
     };
 
     if (records.records && records.records.length > 0) {
@@ -274,7 +310,7 @@ export async function getContent() {
         const section = record.fields['Section'];
         const jsonData = record.fields['JSON Data'];
         
-        if (section === 'header' || section === 'hero') {
+        if (section === 'header' || section === 'hero' || section === 'messages') {
           try {
             const parsedData = JSON.parse(jsonData);
             
@@ -286,6 +322,8 @@ export async function getContent() {
               };
             } else if (section === 'header') {
               content.header = parsedData;
+            } else if (section === 'messages') {
+              content.messages = parsedData;
             }
           } catch (parseError) {
             console.error(`Error parsing JSON for ${section}:`, parseError);
@@ -298,6 +336,35 @@ export async function getContent() {
   } catch (error) {
     console.error('Error getting content:', error);
     throw error;
+  }
+}
+
+/**
+ * Get message templates from Airtable
+ * Returns default messages if not found in Airtable
+ */
+export async function getMessageTemplates() {
+  try {
+    const content = await getContent();
+    const defaultMessages = {
+      loveReply: "Thanks for joining The Weft! Click here: {link}",
+      unsubReply: "You have been successfully unsubscribed. You are now free tier user. Thank you for being part of The Weft!",
+      stopReply: "You have been successfully unsubscribed. You will no longer receive messages. Reply LOVE to rejoin.",
+      welcomeMessage: "Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.",
+      monthlyMessage: "Thank you for being part of Community Weft. This is your monthly care message from our makers. We appreciate your continued support. Reply STOP anytime to opt out.",
+    };
+    
+    return content.messages || defaultMessages;
+  } catch (error) {
+    console.error('Error getting message templates:', error);
+    // Return defaults on error
+    return {
+      loveReply: "Thanks for joining The Weft! Click here: {link}",
+      unsubReply: "You have been successfully unsubscribed. You are now free tier user. Thank you for being part of The Weft!",
+      stopReply: "You have been successfully unsubscribed. You will no longer receive messages. Reply LOVE to rejoin.",
+      welcomeMessage: "Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.",
+      monthlyMessage: "Thank you for being part of Community Weft. This is your monthly care message from our makers. We appreciate your continued support. Reply STOP anytime to opt out.",
+    };
   }
 }
 

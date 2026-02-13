@@ -19,7 +19,7 @@ import { sendSMS, sendSMSDirect } from '@/app/lib/bird';
  * 
  * Configure this URL in Bird.com:
  * Channels → SMS → Your number (+15106716597) → Webhook settings
- * URL: https://selectable-equiprobable-andrea.ngrok-free.dev/bird-sms-webhook
+ * URL: {NGROK_URL}/bird-sms-webhook (from .env file)
  */
 
 // Track processed message IDs for idempotency (in-memory cache)
@@ -344,15 +344,30 @@ async function sendSMSInConversation(phoneNumber: string, message: string, conve
 }
 
 /**
+ * Get the base URL from environment variable
+ */
+function getBaseUrl(): string {
+  const ngrokUrl = process.env.NGROK_URL;
+  if (ngrokUrl) {
+    // Remove trailing slash if present
+    return ngrokUrl.replace(/\/$/, '');
+  }
+  // Fallback to localhost for development
+  return 'http://localhost:3000';
+}
+
+/**
  * Send LOVE reply message with welcome link
  * Sends in the same conversation as the incoming message
  */
 async function sendLoveReply(phoneNumber: string, conversationId: string | null): Promise<boolean> {
   try {
-    // URL encode the phone number for the link
+    // Get message template from Airtable
+    const messages = await airtableService.getMessageTemplates();
     const encodedPhone = encodeURIComponent(phoneNumber);
-    const welcomeLink = `https://selectable-equiprobable-andrea.ngrok-free.dev/?phone=${encodedPhone}`;
-    const replyMessage = `Thanks for joining The Weft! Click here: ${welcomeLink}`;
+    const baseUrl = getBaseUrl();
+    const welcomeLink = `${baseUrl}/?phone=${encodedPhone}`;
+    const replyMessage = messages.loveReply.replace('{link}', welcomeLink);
     
     console.log(`   📤 Sending LOVE reply to ${phoneNumber}`);
     return await sendSMSInConversation(phoneNumber, replyMessage, conversationId);
@@ -368,7 +383,9 @@ async function sendLoveReply(phoneNumber: string, conversationId: string | null)
  */
 async function sendUnsubReply(phoneNumber: string, conversationId: string | null): Promise<boolean> {
   try {
-    const replyMessage = `You have been successfully unsubscribed. You are now free tier user. Thank you for being part of The Weft!`;
+    // Get message template from Airtable
+    const messages = await airtableService.getMessageTemplates();
+    const replyMessage = messages.unsubReply;
     
     console.log(`   📤 Sending UNSUB confirmation to ${phoneNumber}`);
     return await sendSMSInConversation(phoneNumber, replyMessage, conversationId);
@@ -384,7 +401,9 @@ async function sendUnsubReply(phoneNumber: string, conversationId: string | null
  */
 async function sendStopReply(phoneNumber: string, conversationId: string | null): Promise<boolean> {
   try {
-    const replyMessage = `You have been successfully unsubscribed. You will no longer receive messages. Reply LOVE to rejoin.`;
+    // Get message template from Airtable
+    const messages = await airtableService.getMessageTemplates();
+    const replyMessage = messages.stopReply;
     
     console.log(`   📤 Sending STOP confirmation to ${phoneNumber}`);
     return await sendSMSInConversation(phoneNumber, replyMessage, conversationId);

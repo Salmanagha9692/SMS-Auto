@@ -21,13 +21,13 @@ import * as airtableService from '@/app/lib/airtable';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { header, hero } = body;
+    const { header, hero, messages } = body;
 
-    if (!header && !hero) {
+    if (!header && !hero && !messages) {
       return NextResponse.json({
         success: false,
         error: 'Validation error',
-        message: 'At least one of header or hero data is required'
+        message: 'At least one of header, hero, or messages data is required'
       }, { status: 400 });
     }
 
@@ -42,7 +42,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const contentData: { header?: any; hero?: any } = {};
+    // Validate messages structure if provided
+    if (messages) {
+      const requiredFields = ['loveReply', 'unsubReply', 'stopReply', 'welcomeMessage', 'monthlyMessage'];
+      for (const field of requiredFields) {
+        if (typeof messages[field] !== 'string') {
+          return NextResponse.json({
+            success: false,
+            error: 'Validation error',
+            message: `Messages section must contain ${field} as a string`
+          }, { status: 400 });
+        }
+      }
+    }
+
+    const contentData: { header?: any; hero?: any; messages?: any } = {};
     if (header) {
       contentData.header = {
         logoUrl: header.logoUrl || '',
@@ -54,6 +68,15 @@ export async function POST(request: NextRequest) {
       contentData.hero = {
         title: hero.title,
         subtitle: hero.subtitle
+      };
+    }
+    if (messages) {
+      contentData.messages = {
+        loveReply: messages.loveReply,
+        unsubReply: messages.unsubReply,
+        stopReply: messages.stopReply,
+        welcomeMessage: messages.welcomeMessage,
+        monthlyMessage: messages.monthlyMessage
       };
     }
 

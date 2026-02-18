@@ -101,7 +101,7 @@ This document describes the complete user journey from SMS interaction to paymen
 │ ├─ Phone pre-filled from localStorage                      │
 │ ├─ User enters email                                       │
 │ ├─ Backend saves directly to Airtable                      │
-│ ├─ Welcome SMS sent via Bird.com                           │
+│ ├─ 4 Welcome SMS messages sent sequentially via Bird.com   │
 │ └─ Redirects to /success                                   │
 │                                                             │
 │ IF PAID TIER:                                               │
@@ -109,17 +109,40 @@ This document describes the complete user journey from SMS interaction to paymen
 │ ├─ User enters payment details (card, shipping)            │
 │ ├─ Payment processed                                       │
 │ ├─ Stripe webhook updates Airtable                         │
-│ ├─ Welcome SMS sent via Bird.com                           │
+│ ├─ 4 Welcome SMS messages sent sequentially via Bird.com   │
 │ └─ Redirects to /success                                   │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ STEP 11: User receives welcome message                     │
-│ "Welcome to Community Weft! You are now part of our        │
-│  community. We are excited to have you here. You will       │
-│  receive monthly care messages from our makers. Reply       │
-│  STOP anytime to opt out."                                 │
+│ STEP 11: User receives 4 welcome messages (sequentially)    │
+│                                                             │
+│ Message 1 — Welcome:                                        │
+│ "Welcome to CompassionSMS supporting the wellbeing of       │
+│  those living through conflict and crisis. Sign up is       │
+│  free; your giving sustains FemSMS."                       │
+│                                                             │
+│ [2 second delay]                                            │
+│                                                             │
+│ Message 2 — Shared practice / community:                    │
+│ "Connection, care, community: threads holding fabric       │
+│  together—through voice and dignity the weft is woven—     │
+│  uplifting those living through war and displacement."     │
+│                                                             │
+│ [2 second delay]                                            │
+│                                                             │
+│ Message 3 — Rhythm / impact / choice:                      │
+│ "When you receive a CompassionSMS message those in         │
+│  crisis contexts receive a FemSMS message. After 4          │
+│  welcome texts you will receive 2 monthly wellbeing        │
+│  texts."                                                    │
+│                                                             │
+│ [2 second delay]                                            │
+│                                                             │
+│ Message 4 — Rhythm / impact / choice:                      │
+│ "A practice of compassion based on Footage's methods.       │
+│  We're happy you're with us. Participation brings hope.     │
+│  Dignity in every thread. Reply STOP to cancel texts."      │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
@@ -169,7 +192,7 @@ This document describes the complete user journey from SMS interaction to paymen
 
 6. **Payment completion**
    - Webhook updates Airtable
-   - Welcome SMS sent
+   - 4 Welcome SMS messages sent sequentially (one by one with 2-second delays)
    - Redirect to success page
 
 ### Flow 2: UNSUB Message Handling
@@ -217,7 +240,7 @@ This document describes the complete user journey from SMS interaction to paymen
 2. ContactModal opens → Phone pre-filled from localStorage
 3. User enters email
 4. Backend saves to Airtable (status: "completed")
-5. Welcome SMS sent via Bird.com
+5. 4 Welcome SMS messages sent sequentially via Bird.com (one by one with 2-second delays)
 6. Redirect to success page
 
 ### Flow 5: Paid Tier - One-Time Payment
@@ -228,7 +251,7 @@ This document describes the complete user journey from SMS interaction to paymen
 4. Redirected to Stripe Checkout (phone pre-filled, read-only)
 5. User completes payment
 6. Stripe webhook → Updates Airtable (status: "completed")
-7. Welcome SMS sent
+7. 4 Welcome SMS messages sent sequentially (one by one with 2-second delays)
 8. Redirect to success page
 
 ### Flow 6: Paid Tier - Monthly Subscription
@@ -239,7 +262,7 @@ This document describes the complete user journey from SMS interaction to paymen
 4. Redirected to Stripe Checkout (phone pre-filled, read-only)
 5. User completes first payment
 6. Stripe webhook → Updates Airtable (status: "active")
-7. Welcome SMS sent
+7. 4 Welcome SMS messages sent sequentially (one by one with 2-second delays)
 8. Monthly payments auto-renew
 9. Monthly webhooks update status
 
@@ -293,13 +316,13 @@ This document describes the complete user journey from SMS interaction to paymen
 **POST /api/stripe/create-checkout-session**
 - Creates Stripe checkout session
 - Creates/retrieves Stripe customer with phone number
-- Free tier: Saves directly to Airtable, sends welcome SMS
+- Free tier: Saves directly to Airtable, sends 4 welcome SMS messages sequentially
 - Paid tier: Returns Stripe checkout URL with phone pre-filled
 
 **POST /api/stripe/webhook**
 - Handles Stripe events (payment completed, subscription updates)
 - Updates Airtable records
-- Sends welcome SMS
+- Sends 4 welcome SMS messages sequentially (one by one with 2-second delays)
 
 **GET /api/stripe/session**
 - Retrieves checkout session details for success page
@@ -320,13 +343,42 @@ This document describes the complete user journey from SMS interaction to paymen
 - Admin panel for content management and monthly message sending
 - Features:
   - Edit header and hero section content
+  - Edit 4 welcome messages (sent sequentially after payment/signup)
+  - Edit other message templates (LOVE reply, STOP reply, UNSUB reply, monthly message)
   - Save/Reset content changes
   - Send monthly messages with one click
   - View delivery summary after sending
 
 ---
 
+## Welcome Message Sequence
+
+After successful payment or free tier signup, **4 welcome messages are sent sequentially** (one by one, not combined):
+
+1. **Message 1 — Welcome** (140 chars)
+   - "Welcome to CompassionSMS supporting the wellbeing of those living through conflict and crisis. Sign up is free; your giving sustains FemSMS."
+
+2. **Message 2 — Shared practice / community** (157 chars)
+   - "Connection, care, community: threads holding fabric together—through voice and dignity the weft is woven—uplifting those living through war and displacement."
+
+3. **Message 3 — Rhythm / impact / choice** (157 chars)
+   - "When you receive a CompassionSMS message those in crisis contexts receive a FemSMS message. After 4 welcome texts you will receive 2 monthly wellbeing texts."
+
+4. **Message 4 — Rhythm / impact / choice** (160 chars)
+   - "A practice of compassion based on Footage's methods. We're happy you're with us. Participation brings hope. Dignity in every thread. Reply STOP to cancel texts."
+
+**Timing**: Each message is sent with a **2-second delay** between them. All messages are sent separately (not combined into one message).
+
+**Configuration**: Messages can be edited in the Admin Panel (`/admin`) under "Message Templates" section.
+
+---
+
 ## Data Storage (Airtable)
+
+### Content Table
+- Stores website content (header, hero sections)
+- Stores message templates including 4 welcome messages (welcomeMessage1, welcomeMessage2, welcomeMessage3, welcomeMessage4)
+- Section field options: `header`, `hero`, `messages`
 
 ### Payments Table
 - Email, Phone Number, Tier, Amount
@@ -494,7 +546,7 @@ GET /api/bird/send-monthly-messages
 6. Select tier and continue
 7. Verify Stripe checkout has phone pre-filled (read-only)
 8. Complete payment
-9. Verify welcome SMS received
+9. Verify all 4 welcome SMS messages received (sent sequentially)
 
 ### Test UNSUB Message Flow
 
@@ -522,7 +574,7 @@ GET /api/bird/send-monthly-messages
 3. Verify phone pre-filled in checkout
 4. Verify phone is read-only (field hidden)
 5. Verify Airtable records created
-6. Verify welcome SMS sent
+6. Verify all 4 welcome SMS messages sent sequentially
 
 ### Test Monthly Messages
 

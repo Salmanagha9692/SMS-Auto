@@ -81,7 +81,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 1. User sends "LOVE" SMS → Webhook processes → Automatic reply with link
 2. User clicks link → Landing page with phone pre-filled → Phone saved to localStorage
 3. User selects tier → Stripe customer created → Checkout with phone pre-filled (read-only)
-4. Payment completed → Welcome SMS sent
+4. Payment completed → 4 Welcome SMS messages sent sequentially (one by one with 2-second delays)
 
 ### UNSUB/STOP Flow
 

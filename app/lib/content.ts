@@ -18,7 +18,10 @@ export interface MessageTemplates {
   loveReply: string; // Reply message for LOVE keyword
   unsubReply: string; // Reply message for UNSUB keyword
   stopReply: string; // Reply message for STOP keyword
-  welcomeMessage: string; // Welcome message sent after payment
+  welcomeMessage1: string; // Welcome message 1 — Welcome
+  welcomeMessage2: string; // Welcome message 2 — Shared practice / community
+  welcomeMessage3: string; // Welcome message 3 — Rhythm / impact / choice
+  welcomeMessage4: string; // Welcome message 4 — Rhythm / impact / choice
   monthlyMessage: string; // Monthly care message
 }
 
@@ -47,7 +50,10 @@ export const defaultContent: SiteContent = {
     loveReply: "Thanks for joining The Weft! Click here: {link}",
     unsubReply: "You have been successfully unsubscribed. You are now free tier user. Thank you for being part of The Weft!",
     stopReply: "You have been successfully unsubscribed. You will no longer receive messages. Reply LOVE to rejoin.",
-    welcomeMessage: "Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.",
+    welcomeMessage1: "Welcome to CompassionSMS supporting the wellbeing of those living through conflict and crisis. Sign up is free; your giving sustains FemSMS.",
+    welcomeMessage2: "Connection, care, community: threads holding fabric together—through voice and dignity the weft is woven—uplifting those living through war and displacement.",
+    welcomeMessage3: "When you receive a CompassionSMS message those in crisis contexts receive a FemSMS message. After 4 welcome texts you will receive 2 monthly wellbeing texts.",
+    welcomeMessage4: "A practice of compassion based on Footage's methods. We're happy you're with us. Participation brings hope. Dignity in every thread. Reply STOP to cancel texts.",
     monthlyMessage: "Thank you for being part of Community Weft. This is your monthly care message from our makers. We appreciate your continued support. Reply STOP anytime to opt out.",
   },
 };
@@ -88,7 +94,10 @@ export async function getContent(): Promise<SiteContent> {
           loveReply: result.data.messages?.loveReply || defaultContent.messages.loveReply,
           unsubReply: result.data.messages?.unsubReply || defaultContent.messages.unsubReply,
           stopReply: result.data.messages?.stopReply || defaultContent.messages.stopReply,
-          welcomeMessage: result.data.messages?.welcomeMessage || defaultContent.messages.welcomeMessage,
+          welcomeMessage1: result.data.messages?.welcomeMessage1 || defaultContent.messages.welcomeMessage1,
+          welcomeMessage2: result.data.messages?.welcomeMessage2 || defaultContent.messages.welcomeMessage2,
+          welcomeMessage3: result.data.messages?.welcomeMessage3 || defaultContent.messages.welcomeMessage3,
+          welcomeMessage4: result.data.messages?.welcomeMessage4 || defaultContent.messages.welcomeMessage4,
           monthlyMessage: result.data.messages?.monthlyMessage || defaultContent.messages.monthlyMessage,
         },
       };

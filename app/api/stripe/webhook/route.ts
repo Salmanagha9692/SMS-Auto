@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyWebhookSignature } from '@/app/lib/stripe';
 import * as airtableService from '@/app/lib/airtable';
-import { sendSMS, sendSMSDirect } from '@/app/lib/bird';
+import { sendSMS, sendSMSDirect, sendSMSSequence } from '@/app/lib/bird';
 import Stripe from 'stripe';
 
 /**
@@ -165,33 +165,32 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     console.log('✅ Payment record saved to Airtable');
 
-    // Send welcome message if phone number is available
+    // Send welcome message sequence if phone number is available
     if (phoneNumber) {
       try {
-        // Get message template from Airtable
+        // Get message templates from Airtable
         const messages = await airtableService.getMessageTemplates();
-        const welcomeMessage = messages.welcomeMessage;
+        const welcomeMessages = [
+          messages.welcomeMessage1,
+          messages.welcomeMessage2,
+          messages.welcomeMessage3,
+          messages.welcomeMessage4
+        ].filter(msg => msg && msg.trim()); // Filter out empty messages
         
-        console.log(`📱 Sending welcome message to ${phoneNumber}`);
-        // Use direct method as primary (matches curl format)
-        await sendSMSDirect(phoneNumber, welcomeMessage);
-        console.log('✅ Welcome message sent successfully');
+        if (welcomeMessages.length > 0) {
+          console.log(`📱 Sending ${welcomeMessages.length} welcome messages sequentially to ${phoneNumber}`);
+          const results = await sendSMSSequence(phoneNumber, welcomeMessages, 2000); // 2 second delay between messages
+          const successCount = results.filter(r => r.success).length;
+          console.log(`✅ Welcome message sequence completed: ${successCount}/${welcomeMessages.length} sent successfully`);
+        } else {
+          console.log('⚠️  No welcome messages found in templates');
+        }
       } catch (smsError: any) {
         // Log error but don't fail the webhook - payment is already processed
-        console.error('⚠️  Failed to send welcome message:', smsError.message);
-        
-        // Try alternative conversation method
-        try {
-          console.log('🔄 Trying alternative SMS sending method...');
-          const messages = await airtableService.getMessageTemplates();
-          await sendSMS(phoneNumber, messages.welcomeMessage);
-          console.log('✅ Welcome message sent successfully (alternative method)');
-        } catch (retryError: any) {
-          console.error('❌ Failed to send welcome message (both methods):', retryError.message);
-        }
+        console.error('⚠️  Failed to send welcome message sequence:', smsError.message);
       }
     } else {
-      console.log('⚠️  No phone number available, skipping welcome message');
+      console.log('⚠️  No phone number available, skipping welcome messages');
     }
 
   } catch (error) {

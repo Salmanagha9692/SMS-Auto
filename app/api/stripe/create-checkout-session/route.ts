@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCheckoutSession } from '@/app/lib/stripe';
 import * as airtableService from '@/app/lib/airtable';
-import { sendSMS, sendSMSDirect } from '@/app/lib/bird';
+import { sendSMS, sendSMSDirect, sendSMSSequence } from '@/app/lib/bird';
 
 /**
  * Get the base URL, checking for ngrok or forwarded host headers
@@ -82,26 +82,28 @@ export async function POST(request: NextRequest) {
           status: 'completed',
         });
 
-        // Send welcome message for free tier
+        // Send welcome message sequence for free tier
         if (phoneNumber) {
           try {
-            // Get message template from Airtable
+            // Get message templates from Airtable
             const messages = await airtableService.getMessageTemplates();
-            const welcomeMessage = messages.welcomeMessage;
-            console.log(`📱 Sending welcome message to ${phoneNumber} (free tier)`);
-            // Use direct method as primary (matches curl format)
-            await sendSMSDirect(phoneNumber, welcomeMessage);
-            console.log('✅ Welcome message sent successfully');
-          } catch (smsError: any) {
-            console.error('⚠️  Failed to send welcome message:', smsError.message);
-            // Try alternative method
-            try {
-              const messages = await airtableService.getMessageTemplates();
-              await sendSMS(phoneNumber, messages.welcomeMessage);
-              console.log('✅ Welcome message sent successfully (alternative method)');
-            } catch (retryError: any) {
-              console.error('❌ Failed to send welcome message (both methods):', retryError.message);
+            const welcomeMessages = [
+              messages.welcomeMessage1,
+              messages.welcomeMessage2,
+              messages.welcomeMessage3,
+              messages.welcomeMessage4
+            ].filter(msg => msg && msg.trim()); // Filter out empty messages
+            
+            if (welcomeMessages.length > 0) {
+              console.log(`📱 Sending ${welcomeMessages.length} welcome messages sequentially to ${phoneNumber} (free tier)`);
+              const results = await sendSMSSequence(phoneNumber, welcomeMessages, 2000); // 2 second delay between messages
+              const successCount = results.filter(r => r.success).length;
+              console.log(`✅ Welcome message sequence completed: ${successCount}/${welcomeMessages.length} sent successfully`);
+            } else {
+              console.log('⚠️  No welcome messages found in templates');
             }
+          } catch (smsError: any) {
+            console.error('⚠️  Failed to send welcome message sequence:', smsError.message);
           }
         }
 

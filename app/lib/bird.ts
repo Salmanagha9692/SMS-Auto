@@ -261,3 +261,50 @@ export async function sendSMSDirect(phoneNumber: string, message: string) {
   }
 }
 
+/**
+ * Send multiple SMS messages sequentially with delays
+ * Sends messages one by one with a delay between each
+ * @param phoneNumber - Recipient phone number (E.164 format)
+ * @param messages - Array of message strings to send
+ * @param delayMs - Delay between messages in milliseconds (default: 2000ms = 2 seconds)
+ * @returns Promise with array of results
+ */
+export async function sendSMSSequence(
+  phoneNumber: string, 
+  messages: string[], 
+  delayMs: number = 2000
+): Promise<any[]> {
+  const results: any[] = [];
+  
+  for (let i = 0; i < messages.length; i++) {
+    try {
+      console.log(`📤 Sending welcome message ${i + 1}/${messages.length} to ${phoneNumber}`);
+      
+      // Try direct method first (more reliable)
+      try {
+        const result = await sendSMSDirect(phoneNumber, messages[i]);
+        results.push({ success: true, messageIndex: i + 1, result });
+        console.log(`✅ Welcome message ${i + 1}/${messages.length} sent successfully`);
+      } catch (directError: any) {
+        // Fallback to conversation method
+        console.log(`⚠️  Direct method failed, trying conversation method for message ${i + 1}...`);
+        const result = await sendSMS(phoneNumber, messages[i]);
+        results.push({ success: true, messageIndex: i + 1, result });
+        console.log(`✅ Welcome message ${i + 1}/${messages.length} sent successfully (conversation method)`);
+      }
+      
+      // Wait before sending next message (except for the last one)
+      if (i < messages.length - 1) {
+        console.log(`⏳ Waiting ${delayMs}ms before sending next message...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    } catch (error: any) {
+      console.error(`❌ Failed to send welcome message ${i + 1}/${messages.length}:`, error.message);
+      results.push({ success: false, messageIndex: i + 1, error: error.message });
+      // Continue with next message even if one fails
+    }
+  }
+  
+  return results;
+}
+

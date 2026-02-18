@@ -290,7 +290,7 @@ export async function updateContent(contentData: { header?: any; hero?: { title:
  * Returns content with the new structure:
  * - hero: { title: string, subtitle: string } (no highlights)
  * - header: { logoUrl: string, logoAlt: string }
- * - messages: { loveReply, unsubReply, stopReply, welcomeMessage, monthlyMessage }
+ * - messages: { loveReply, unsubReply, stopReply, welcomeMessage1, welcomeMessage2, welcomeMessage3, welcomeMessage4, monthlyMessage }
  */
 export async function getContent() {
   try {
@@ -350,11 +350,24 @@ export async function getMessageTemplates() {
       loveReply: "Thanks for joining The Weft! Click here: {link}",
       unsubReply: "You have been successfully unsubscribed. You are now free tier user. Thank you for being part of The Weft!",
       stopReply: "You have been successfully unsubscribed. You will no longer receive messages. Reply LOVE to rejoin.",
-      welcomeMessage: "Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.",
+      welcomeMessage1: "Welcome to CompassionSMS supporting the wellbeing of those living through conflict and crisis. Sign up is free; your giving sustains FemSMS.",
+      welcomeMessage2: "Connection, care, community: threads holding fabric together—through voice and dignity the weft is woven—uplifting those living through war and displacement.",
+      welcomeMessage3: "When you receive a CompassionSMS message those in crisis contexts receive a FemSMS message. After 4 welcome texts you will receive 2 monthly wellbeing texts.",
+      welcomeMessage4: "A practice of compassion based on Footage's methods. We're happy you're with us. Participation brings hope. Dignity in every thread. Reply STOP to cancel texts.",
       monthlyMessage: "Thank you for being part of Community Weft. This is your monthly care message from our makers. We appreciate your continued support. Reply STOP anytime to opt out.",
     };
     
-    return content.messages || defaultMessages;
+    // Merge Airtable messages with defaults (Airtable takes priority, defaults fill missing fields)
+    const airtableMessages = content.messages || {};
+    return {
+      ...defaultMessages,
+      ...airtableMessages,
+      // Ensure all welcome messages exist (use defaults if missing from Airtable)
+      welcomeMessage1: airtableMessages.welcomeMessage1 || defaultMessages.welcomeMessage1,
+      welcomeMessage2: airtableMessages.welcomeMessage2 || defaultMessages.welcomeMessage2,
+      welcomeMessage3: airtableMessages.welcomeMessage3 || defaultMessages.welcomeMessage3,
+      welcomeMessage4: airtableMessages.welcomeMessage4 || defaultMessages.welcomeMessage4,
+    };
   } catch (error) {
     console.error('Error getting message templates:', error);
     // Return defaults on error
@@ -362,7 +375,10 @@ export async function getMessageTemplates() {
       loveReply: "Thanks for joining The Weft! Click here: {link}",
       unsubReply: "You have been successfully unsubscribed. You are now free tier user. Thank you for being part of The Weft!",
       stopReply: "You have been successfully unsubscribed. You will no longer receive messages. Reply LOVE to rejoin.",
-      welcomeMessage: "Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out.",
+      welcomeMessage1: "Welcome to CompassionSMS supporting the wellbeing of those living through conflict and crisis. Sign up is free; your giving sustains FemSMS.",
+      welcomeMessage2: "Connection, care, community: threads holding fabric together—through voice and dignity the weft is woven—uplifting those living through war and displacement.",
+      welcomeMessage3: "When you receive a CompassionSMS message those in crisis contexts receive a FemSMS message. After 4 welcome texts you will receive 2 monthly wellbeing texts.",
+      welcomeMessage4: "A practice of compassion based on Footage's methods. We're happy you're with us. Participation brings hope. Dignity in every thread. Reply STOP to cancel texts.",
       monthlyMessage: "Thank you for being part of Community Weft. This is your monthly care message from our makers. We appreciate your continued support. Reply STOP anytime to opt out.",
     };
   }

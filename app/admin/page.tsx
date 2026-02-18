@@ -303,18 +303,65 @@ export default function AdminPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Welcome Message
+                  Welcome Messages (sent sequentially, one by one)
                 </label>
-                <textarea
-                  value={content.messages.welcomeMessage}
-                  onChange={(e) => updateMessage("welcomeMessage", e.target.value)}
-                  placeholder="Welcome to Community Weft! You are now part of our community. We are excited to have you here. You will receive monthly care messages from our makers. Reply STOP anytime to opt out."
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Message sent after successful payment or free tier signup.
+                <p className="mb-3 text-xs text-gray-500">
+                  These 4 messages will be sent one by one after successful payment or free tier signup. Each message is sent separately with a 2-second delay.
                 </p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Welcome Message 1 — Welcome
+                    </label>
+                    <textarea
+                      value={content.messages.welcomeMessage1}
+                      onChange={(e) => updateMessage("welcomeMessage1", e.target.value)}
+                      placeholder="Welcome to CompassionSMS supporting the wellbeing of those living through conflict and crisis. Sign up is free; your giving sustains FemSMS."
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Welcome Message 2 — Shared practice / community
+                    </label>
+                    <textarea
+                      value={content.messages.welcomeMessage2}
+                      onChange={(e) => updateMessage("welcomeMessage2", e.target.value)}
+                      placeholder="Connection, care, community: threads holding fabric together—through voice and dignity the weft is woven—uplifting those living through war and displacement."
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Welcome Message 3 — Rhythm / impact / choice
+                    </label>
+                    <textarea
+                      value={content.messages.welcomeMessage3}
+                      onChange={(e) => updateMessage("welcomeMessage3", e.target.value)}
+                      placeholder="When you receive a CompassionSMS message those in crisis contexts receive a FemSMS message. After 4 welcome texts you will receive 2 monthly wellbeing texts."
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Welcome Message 4 — Rhythm / impact / choice
+                    </label>
+                    <textarea
+                      value={content.messages.welcomeMessage4}
+                      onChange={(e) => updateMessage("welcomeMessage4", e.target.value)}
+                      placeholder="A practice of compassion based on Footage's methods. We're happy you're with us. Participation brings hope. Dignity in every thread. Reply STOP to cancel texts."
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>

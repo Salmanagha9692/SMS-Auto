@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Validate messages structure if provided
     if (messages) {
-      const requiredFields = ['loveReply', 'unsubReply', 'stopReply', 'welcomeMessage', 'monthlyMessage'];
+      const requiredFields = ['loveReply', 'unsubReply', 'stopReply', 'welcomeMessage1', 'welcomeMessage2', 'welcomeMessage3', 'welcomeMessage4', 'monthlyMessage'];
       for (const field of requiredFields) {
         if (typeof messages[field] !== 'string') {
           return NextResponse.json({
@@ -75,7 +75,10 @@ export async function POST(request: NextRequest) {
         loveReply: messages.loveReply,
         unsubReply: messages.unsubReply,
         stopReply: messages.stopReply,
-        welcomeMessage: messages.welcomeMessage,
+        welcomeMessage1: messages.welcomeMessage1,
+        welcomeMessage2: messages.welcomeMessage2,
+        welcomeMessage3: messages.welcomeMessage3,
+        welcomeMessage4: messages.welcomeMessage4,
         monthlyMessage: messages.monthlyMessage
       };
     }

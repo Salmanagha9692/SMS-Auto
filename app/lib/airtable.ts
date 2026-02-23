@@ -184,6 +184,164 @@ export async function findOrCreateContentTable() {
 }
 
 /**
+ * Find or create Free Content table (for free landing page)
+ * Same structure as Content: Name, Section (header|hero|intro|messages), JSON Data
+ */
+export async function findOrCreateFreeContentTable() {
+  try {
+    const tablesData = await getTables();
+    const freeTable = tablesData.tables?.find((table: any) =>
+      table.name.toLowerCase() === 'free content' || table.name.toLowerCase() === 'freecontent'
+    );
+
+    if (freeTable) {
+      return freeTable;
+    }
+
+    const fields = [
+      { name: 'Name', type: 'singleLineText', description: 'Primary field for free content table' },
+      {
+        name: 'Section',
+        type: 'singleSelect',
+        options: {
+          choices: [
+            { name: 'header' },
+            { name: 'hero' },
+            { name: 'intro' },
+            { name: 'messages' }
+          ]
+        }
+      },
+      { name: 'JSON Data', type: 'multilineText', description: 'Stores JSON data for the section' }
+    ];
+
+    const newTable = await createTable('Free Content', fields);
+    return newTable;
+  } catch (error) {
+    console.error('Error finding or creating free content table:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all free content from Airtable (header, hero, intro, messages)
+ */
+export async function getFreeContent() {
+  try {
+    const table = await findOrCreateFreeContentTable();
+    const tableName = table.name || 'Free Content';
+    const records = await getRecords(tableName);
+
+    const content: { header: any; hero: any; intro: any; messages: any } = {
+      header: null,
+      hero: null,
+      intro: null,
+      messages: null
+    };
+
+    if (records.records && records.records.length > 0) {
+      records.records.forEach((record: any) => {
+        const section = record.fields['Section'];
+        const jsonData = record.fields['JSON Data'];
+
+        if (section === 'header' || section === 'hero' || section === 'intro' || section === 'messages') {
+          try {
+            const parsed = JSON.parse(jsonData);
+            if (section === 'hero' && parsed) {
+              content.hero = { title: parsed.title || '', subtitle: parsed.subtitle || '' };
+            } else {
+              (content as any)[section] = parsed;
+            }
+          } catch (e) {
+            console.error(`Error parsing JSON for free ${section}:`, e);
+          }
+        }
+      });
+    }
+
+    return content;
+  } catch (error) {
+    console.error('Error getting free content:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update free content in Airtable
+ */
+export async function updateFreeContent(contentData: {
+  header?: any;
+  hero?: { title: string; subtitle: string };
+  intro?: any;
+  messages?: any;
+}) {
+  try {
+    const table = await findOrCreateFreeContentTable();
+    const tableName = table.name || 'Free Content';
+    const results: any = {};
+
+    const sections: ('header' | 'hero' | 'intro' | 'messages')[] = ['header', 'hero', 'intro', 'messages'];
+    for (const section of sections) {
+      const data = (contentData as any)[section];
+      if (!data) continue;
+
+      const jsonData = section === 'hero'
+        ? JSON.stringify({ title: data.title || '', subtitle: data.subtitle || '' })
+        : JSON.stringify(data);
+
+      const existing = await getRecords(tableName, { filterByFormula: `{Section} = "${section}"` });
+
+      if (existing.records && existing.records.length > 0) {
+        results[section] = await updateRecord(tableName, existing.records[0].id, {
+          'Section': section,
+          'JSON Data': jsonData
+        });
+      } else {
+        results[section] = await createRecord(tableName, {
+          'Name': section,
+          'Section': section,
+          'JSON Data': jsonData
+        });
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Error updating free content:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get free message templates (for FREE keyword reply and free page messages)
+ */
+export async function getFreeMessageTemplates() {
+  try {
+    const content = await getFreeContent();
+    const defaultFree = {
+      freeReply: "Thanks for your interest! Get free community access here: {link}",
+      welcomeMessage1: "Welcome to Community Weft! You're now part of our free community.",
+      welcomeMessage2: "You'll receive monthly care messages from our makers.",
+      welcomeMessage3: "When you receive a CompassionSMS message those in crisis contexts receive a FemSMS message. After 4 welcome texts you will receive 2 monthly wellbeing texts.",
+      welcomeMessage4: "A practice of compassion based on Footage's methods. We're happy you're with us. Participation brings hope. Dignity in every thread. Reply STOP to cancel texts.",
+      monthlyMessage: "Thank you for being part of Community Weft. This is your monthly care message. Reply STOP anytime to opt out.",
+    };
+    const messages = content.messages || {};
+    return { ...defaultFree, ...messages };
+  } catch (error) {
+    console.error('Error getting free message templates:', error);
+    return {
+      freeReply: "Thanks for your interest! Get free community access here: {link}",
+      welcomeMessage1: "Welcome to Community Weft! You're now part of our free community.",
+      welcomeMessage2: "You'll receive monthly care messages from our makers.",
+      welcomeMessage3: "When you receive a CompassionSMS message those in crisis contexts receive a FemSMS message. After 4 welcome texts you will receive 2 monthly wellbeing texts.",
+      welcomeMessage4: "A practice of compassion based on Footage's methods. We're happy you're with us. Participation brings hope. Dignity in every thread. Reply STOP to cancel texts.",
+      monthlyMessage: "Thank you for being part of Community Weft. This is your monthly care message. Reply STOP anytime to opt out.",
+    };
+  }
+}
+
+/**
  * Update or create content in Airtable
  * Accepts both header and hero data
  * 

@@ -1,121 +1,121 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SiteContent, defaultContent, getContent, updateContent } from "../lib/content";
+import {
+  FreeContent,
+  defaultFreeContent,
+  getFreeContent,
+  updateFreeContent,
+} from "../../lib/content";
 
-export default function AdminPage() {
-  const [content, setContent] = useState<SiteContent>(defaultContent);
+export default function FreeAdminPage() {
+  const [content, setContent] = useState<FreeContent>(defaultFreeContent);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Monthly messages state
+
   const [sendingMessages, setSendingMessages] = useState(false);
   const [messageResult, setMessageResult] = useState<any>(null);
   const [messageError, setMessageError] = useState<string | null>(null);
 
-  // Load content from API on mount
   useEffect(() => {
     const loadContent = async () => {
       try {
         setLoading(true);
         setError(null);
-        const fetchedContent = await getContent();
-        setContent(fetchedContent);
+        const fetched = await getFreeContent();
+        setContent(fetched);
       } catch (err) {
-        console.error('Failed to load content:', err);
-        setError('Failed to load content from server');
+        console.error("Failed to load free content:", err);
+        setError("Failed to load content from server");
       } finally {
         setLoading(false);
       }
     };
-
     loadContent();
   }, []);
 
-  // Save content to API
   const handleSave = async () => {
     try {
       setSaving(true);
       setError(null);
       setSaved(false);
-      await updateContent(content);
+      await updateFreeContent(content);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err: any) {
-      console.error('Failed to save content:', err);
-      setError(err.message || 'Failed to save content');
+      console.error("Failed to save:", err);
+      setError(err.message || "Failed to save");
       setSaved(false);
     } finally {
       setSaving(false);
     }
   };
 
-  // Reset to default content (also saves to API)
   const handleReset = async () => {
     try {
       setResetting(true);
       setError(null);
       setSaved(false);
-      await updateContent(defaultContent);
-      setContent(defaultContent);
+      await updateFreeContent(defaultFreeContent);
+      setContent(defaultFreeContent);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err: any) {
-      console.error('Failed to reset content:', err);
-      setError(err.message || 'Failed to reset content');
+      console.error("Failed to reset free content:", err);
+      setError(err.message || "Failed to reset");
     } finally {
       setResetting(false);
     }
   };
 
-  // Update header
-  const updateHeader = (field: keyof SiteContent["header"], value: string) => {
+  const handleSendMonthlyMessagesFree = async () => {
+    try {
+      setSendingMessages(true);
+      setMessageError(null);
+      setMessageResult(null);
+      const response = await fetch("/api/bird/send-monthly-messages-free");
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to send monthly messages to free tier");
+      }
+      setMessageResult(data);
+    } catch (err: any) {
+      console.error("Failed to send monthly messages (free tier):", err);
+      setMessageError(err.message || "Failed to send monthly messages to free tier");
+    } finally {
+      setSendingMessages(false);
+    }
+  };
+
+  const updateHeader = (field: keyof FreeContent["header"], value: string) => {
     setContent((prev) => ({
       ...prev,
       header: { ...prev.header, [field]: value },
     }));
   };
 
-  // Update hero
-  const updateHero = (field: keyof SiteContent["hero"], value: string) => {
+  const updateHero = (field: keyof FreeContent["hero"], value: string) => {
     setContent((prev) => ({
       ...prev,
       hero: { ...prev.hero, [field]: value },
     }));
   };
 
-  // Update messages
-  const updateMessage = (field: keyof SiteContent["messages"], value: string) => {
+  const updateIntro = (field: keyof FreeContent["intro"], value: string) => {
+    setContent((prev) => ({
+      ...prev,
+      intro: { ...prev.intro, [field]: value },
+    }));
+  };
+
+  const updateMessage = (field: keyof FreeContent["messages"], value: string) => {
     setContent((prev) => ({
       ...prev,
       messages: { ...prev.messages, [field]: value },
     }));
-  };
-
-  // Send monthly messages
-  const handleSendMonthlyMessages = async () => {
-    try {
-      setSendingMessages(true);
-      setMessageError(null);
-      setMessageResult(null);
-      
-      const response = await fetch('/api/bird/send-monthly-messages');
-      const data = await response.json();
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to send monthly messages');
-      }
-      
-      setMessageResult(data);
-    } catch (err: any) {
-      console.error('Failed to send monthly messages:', err);
-      setMessageError(err.message || 'Failed to send monthly messages');
-    } finally {
-      setSendingMessages(false);
-    }
   };
 
   return (
@@ -124,50 +124,48 @@ export default function AdminPage() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-              <a
-                href="/"
-                className="text-sm text-[#f52151] hover:underline"
-              >
-                ← Back to Site
-              </a>
+              <h1 className="text-2xl font-bold text-gray-900">Free Page Admin</h1>
+              <div className="flex items-center gap-3">
+                <a href="/free" className="text-sm text-[#f52151] hover:underline">
+                  View Free Page
+                </a>
+                <a href="/" className="text-sm text-gray-600 hover:underline">
+                  ← Main Site
+                </a>
+              </div>
             </div>
-            {/* Admin panel switcher */}
             <nav
               className="inline-flex p-0.5 bg-gray-100 border border-gray-200 rounded-lg shadow-inner"
               aria-label="Switch admin panel"
             >
+              <a
+                href="/admin"
+                className="px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-[#f52151] hover:bg-white/60 transition-colors"
+              >
+                Main Admin
+              </a>
               <span
                 aria-current="page"
                 className="px-3 py-1.5 rounded-md bg-white text-gray-900 text-sm font-medium shadow-sm border border-gray-200"
               >
-                Main Admin
-              </span>
-              <a
-                href="/free/admin"
-                className="px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-[#f52151] hover:bg-white/60 transition-colors"
-              >
                 Free Page Admin
-              </a>
+              </span>
             </nav>
           </div>
 
-          {/* Loading State */}
           {loading && (
             <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent" />
               <span className="text-blue-700 text-sm font-medium">Loading content from server...</span>
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
               ⚠️ {error}
             </div>
           )}
 
-          {/* Success Message */}
           {saved && (
             <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
               ✓ Changes saved successfully!
@@ -181,9 +179,7 @@ export default function AdminPage() {
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Logo Image URL
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Logo Image URL</label>
                 <input
                   type="url"
                   value={content.header.logoUrl || ""}
@@ -196,9 +192,7 @@ export default function AdminPage() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Logo Alt Text
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Logo Alt Text</label>
                 <input
                   type="text"
                   value={content.header.logoAlt || ""}
@@ -230,154 +224,132 @@ export default function AdminPage() {
             <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">
               Hero Section
             </h2>
-            
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Main Title (e.g., "COMMUNITY WEFT*")
+                  Main Title (e.g., "FREE COMMUNITY ACCESS")
                 </label>
                 <input
                   type="text"
                   value={content.hero.title}
                   onChange={(e) => updateHero("title", e.target.value)}
-                  placeholder="COMMUNITY WEFT*"
+                  placeholder="FREE COMMUNITY ACCESS"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  This will be displayed in white, bold, uppercase on black background
+                  Displayed in white, bold, uppercase on black background.
                 </p>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subtitle (e.g., "a practice in compassion & connection")
+                  Subtitle (e.g., "join the practice — no payment required")
                 </label>
                 <input
                   type="text"
                   value={content.hero.subtitle}
                   onChange={(e) => updateHero("subtitle", e.target.value)}
-                  placeholder="a practice in compassion & connection"
+                  placeholder="join the practice — no payment required"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  This will be displayed in pink/magenta, italicized below the title
+                  Displayed in pink/magenta below the title.
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Message Templates Section */}
+          {/* Intro Section */}
+          <section className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">
+              Intro Section
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Main Text</label>
+                <textarea
+                  value={content.intro.mainText}
+                  onChange={(e) => updateIntro("mainText", e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sub Text</label>
+                <textarea
+                  value={content.intro.subText}
+                  onChange={(e) => updateIntro("subText", e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Message Templates */}
           <section className="mb-8">
             <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b">
               Message Templates
             </h2>
-            
+            <p className="text-xs text-gray-500 mb-4">
+              Stored separately from Main Admin. Used for free signups and free-tier monthly messages.
+            </p>
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  LOVE Reply Message
+                  FREE Reply Message
                 </label>
                 <textarea
-                  value={content.messages.loveReply}
-                  onChange={(e) => updateMessage("loveReply", e.target.value)}
-                  placeholder="Thanks for joining The Weft! Click here: {link}"
+                  value={content.messages.freeReply}
+                  onChange={(e) => updateMessage("freeReply", e.target.value)}
+                  placeholder="Thanks for your interest! Get free community access here: {link}"
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Auto-reply sent when user texts "LOVE". Use {"{link}"} as placeholder for the welcome link.
+                  Auto-reply when user texts "FREE". Use {"{link}"} for the free page URL.
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  UNSUB Reply Message
+                  Welcome Messages (sent one by one after free signup)
                 </label>
-                <textarea
-                  value={content.messages.unsubReply}
-                  onChange={(e) => updateMessage("unsubReply", e.target.value)}
-                  placeholder="You have been successfully unsubscribed. You are now free tier user. Thank you for being part of The Weft!"
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Auto-reply sent when user texts "UNSUB" or "UNSUBSCRIBE".
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  STOP Reply Message
-                </label>
-                <textarea
-                  value={content.messages.stopReply}
-                  onChange={(e) => updateMessage("stopReply", e.target.value)}
-                  placeholder="You have been successfully unsubscribed. You will no longer receive messages. Reply LOVE to rejoin."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Auto-reply sent when user texts "STOP".
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Welcome Messages (sent sequentially, one by one)
-                </label>
-                <p className="mb-3 text-xs text-gray-500">
-                  These 4 messages will be sent one by one after successful payment or free tier signup. Each message is sent separately with a 2-second delay.
-                </p>
-                
-                <div className="space-y-4">
+                <p className="mb-2 text-xs text-gray-500">4 messages, 2 seconds apart.</p>
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Welcome Message 1 — Welcome
-                    </label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Welcome 1</label>
                     <textarea
                       value={content.messages.welcomeMessage1}
                       onChange={(e) => updateMessage("welcomeMessage1", e.target.value)}
-                      placeholder="Welcome to CompassionSMS supporting the wellbeing of those living through conflict and crisis. Sign up is free; your giving sustains FemSMS."
-                      rows={3}
+                      rows={2}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                     />
                   </div>
-                  
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Welcome Message 2 — Shared practice / community
-                    </label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Welcome 2</label>
                     <textarea
                       value={content.messages.welcomeMessage2}
                       onChange={(e) => updateMessage("welcomeMessage2", e.target.value)}
-                      placeholder="Connection, care, community: threads holding fabric together—through voice and dignity the weft is woven—uplifting those living through war and displacement."
-                      rows={3}
+                      rows={2}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                     />
                   </div>
-                  
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Welcome Message 3 — Rhythm / impact / choice
-                    </label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Welcome 3</label>
                     <textarea
                       value={content.messages.welcomeMessage3}
                       onChange={(e) => updateMessage("welcomeMessage3", e.target.value)}
-                      placeholder="When you receive a CompassionSMS message those in crisis contexts receive a FemSMS message. After 4 welcome texts you will receive 2 monthly wellbeing texts."
-                      rows={3}
+                      rows={2}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                     />
                   </div>
-                  
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Welcome Message 4 — Rhythm / impact / choice
-                    </label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Welcome 4</label>
                     <textarea
                       value={content.messages.welcomeMessage4}
                       onChange={(e) => updateMessage("welcomeMessage4", e.target.value)}
-                      placeholder="A practice of compassion based on Footage's methods. We're happy you're with us. Participation brings hope. Dignity in every thread. Reply STOP to cancel texts."
-                      rows={3}
+                      rows={2}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                     />
                   </div>
@@ -385,18 +357,16 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Monthly Message
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Message</label>
                 <textarea
                   value={content.messages.monthlyMessage}
                   onChange={(e) => updateMessage("monthlyMessage", e.target.value)}
-                  placeholder="Thank you for being part of Community Weft. This is your monthly care message from our makers. We appreciate your continued support. Reply STOP anytime to opt out."
+                  placeholder="Thank you for being part of Community Weft..."
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Monthly care message sent to all eligible subscribers.
+                  Monthly care message for free-tier subscribers. Used when you click "Send Monthly to Free Tier".
                 </p>
               </div>
             </div>
@@ -411,11 +381,11 @@ export default function AdminPage() {
             >
               {saving ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   <span>Saving...</span>
                 </>
               ) : (
-                'Save Changes'
+                "Save Changes"
               )}
             </button>
             <button
@@ -425,50 +395,50 @@ export default function AdminPage() {
             >
               {resetting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-600 border-t-transparent"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-600 border-t-transparent" />
                   <span>Resetting...</span>
                 </>
               ) : (
-                'Reset to Default'
+                "Reset to Default"
               )}
             </button>
           </div>
 
-          {/* Monthly Messages Button */}
+          {/* Send Monthly to Free Tier Only */}
           <div className="space-y-4">
             <button
-              onClick={handleSendMonthlyMessages}
+              onClick={handleSendMonthlyMessagesFree}
               disabled={sendingMessages}
               className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {sendingMessages ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  <span>Sending Monthly Messages...</span>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  <span>Sending Monthly Messages to Free Tier...</span>
                 </>
               ) : (
                 <>
-                  <span>📤 Send Monthly Messages</span>
+                  <span>📤 Send Monthly Messages to Free Tier Only</span>
                 </>
               )}
             </button>
 
-            {/* Message Error */}
             {messageError && (
               <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
                 ⚠️ {messageError}
               </div>
             )}
 
-            {/* Message Result */}
             {messageResult && (
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h3 className="font-semibold text-green-800 mb-3">✓ Monthly Messages Sent Successfully!</h3>
+                <h3 className="font-semibold text-green-800 mb-3">
+                  ✓ Monthly Messages Sent to Free Tier
+                </h3>
                 {messageResult.summary && (
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-700">Total Payments:</span>
-                      <span className="font-medium">{messageResult.summary.totalPayments}</span>
+                      <span className="text-gray-700">Free-tier payments:</span>
+                      <span className="font-medium">{messageResult.summary.totalFree}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-700">Eligible:</span>
@@ -498,8 +468,6 @@ export default function AdminPage() {
         {/* Preview Card */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Live Preview</h2>
-          
-          {/* Header Preview */}
           <div className="border rounded-lg overflow-hidden">
             <div className="h-12 flex items-center justify-center bg-white border-b">
               {content.header.logoUrl ? (
@@ -519,8 +487,6 @@ export default function AdminPage() {
                 <span className="text-xl font-serif italic">{content.header.logoAlt || "footage"}</span>
               )}
             </div>
-            
-            {/* Hero Preview */}
             <div className="bg-black text-white p-6 sm:p-8 text-center flex flex-col justify-center items-center min-h-[200px]">
               <h2 className="text-xl sm:text-2xl font-bold uppercase text-white mb-3 sm:mb-4 font-sans tracking-tight">
                 {content.hero.title}
@@ -535,4 +501,3 @@ export default function AdminPage() {
     </div>
   );
 }
-

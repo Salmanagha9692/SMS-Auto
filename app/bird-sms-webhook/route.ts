@@ -196,10 +196,11 @@ export async function POST(request: NextRequest) {
       console.log('✅ Phone record created successfully');
     }
     
-    // ── STEP 14: Process special messages (LOVE, UNSUB, STOP) ──
+    // ── STEP 14: Process special messages (LOVE, FREE, UNSUB, STOP) ──
     // All keywords are case-insensitive
     const messageUpper = messageText.trim().toUpperCase();
     const isLove = messageUpper === 'LOVE';
+    const isFree = messageUpper === 'FREE';
     const isUnsub = messageUpper === 'UNSUB' || messageUpper === 'UNSUBSCRIBE';
     const isStop = messageUpper === 'STOP';
     
@@ -207,10 +208,16 @@ export async function POST(request: NextRequest) {
     let unsubProcessed = false;
     let stopProcessed = false;
     
-    // Handle LOVE message - send welcome link
+    // Handle LOVE message - send main welcome link
     if (isLove) {
       console.log(`💚 LOVE detected from ${normalizedPhone} - Sending welcome message...`);
       replySent = await sendLoveReply(normalizedPhone, conversationId);
+    }
+    
+    // Handle FREE message - send free landing page link
+    if (isFree) {
+      console.log(`🆓 FREE detected from ${normalizedPhone} - Sending free page link...`);
+      replySent = await sendFreeReply(normalizedPhone, conversationId);
     }
     
     // Handle UNSUB message - cancel subscription and send confirmation
@@ -357,7 +364,7 @@ function getBaseUrl(): string {
 }
 
 /**
- * Send LOVE reply message with welcome link
+ * Send LOVE reply message with welcome link (main landing page)
  * Sends in the same conversation as the incoming message
  */
 async function sendLoveReply(phoneNumber: string, conversationId: string | null): Promise<boolean> {
@@ -373,6 +380,26 @@ async function sendLoveReply(phoneNumber: string, conversationId: string | null)
     return await sendSMSInConversation(phoneNumber, replyMessage, conversationId);
   } catch (error: any) {
     console.error(`   ❌ Error sending LOVE reply:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * Send FREE reply message with free landing page link
+ * Sends in the same conversation as the incoming message
+ */
+async function sendFreeReply(phoneNumber: string, conversationId: string | null): Promise<boolean> {
+  try {
+    const messages = await airtableService.getFreeMessageTemplates();
+    const encodedPhone = encodeURIComponent(phoneNumber);
+    const baseUrl = getBaseUrl();
+    const freeLink = `${baseUrl}/free?phone=${encodedPhone}`;
+    const replyMessage = messages.freeReply.replace('{link}', freeLink);
+    
+    console.log(`   📤 Sending FREE reply to ${phoneNumber} with link: ${freeLink}`);
+    return await sendSMSInConversation(phoneNumber, replyMessage, conversationId);
+  } catch (error: any) {
+    console.error(`   ❌ Error sending FREE reply:`, error.message);
     return false;
   }
 }

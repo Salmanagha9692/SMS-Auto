@@ -160,6 +160,77 @@ This document describes the complete user journey from SMS interaction to paymen
 
 ---
 
+## FREE Message Flow (Free-Only Signup)
+
+When a user texts **FREE** (case-insensitive) to your Bird.com number, this is the flow:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. User sends SMS "FREE"                                     │
+│    - Text "FREE" to Bird.com number                          │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. Bird.com → Your webhook                                  │
+│    POST /bird-sms-webhook                                    │
+│    - Receives inbound SMS (phone + message text)             │
+│    - Saves/updates phone and message in Airtable              │
+│      (Phone Numbers table)                                   │
+│    - Detects keyword "FREE"                                  │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. Automatic FREE reply                                     │
+│    - Gets message from Free Content (freeReply template)     │
+│    - Replaces {link} with:                                   │
+│      https://your-domain.com/free?phone=+1234567890         │
+│    - Sends SMS in same conversation                          │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 4. User taps link → Free landing page                       │
+│    - URL: /free?phone=+1234567890 (number in param)          │
+│    - Page loads free content (header, hero, intro from       │
+│      Airtable "Free Content" table)                          │
+│    - Phone read from URL and stored in localStorage          │
+│    - Phone shown read-only; user enters email               │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 5. User clicks "Get free access"                             │
+│    - POST /api/stripe/create-checkout-session                │
+│    - Body: { tier: "free", email, phoneNumber }              │
+│    - No Stripe checkout (free tier handled in API)           │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 6. Backend (free tier)                                       │
+│    - Creates/updates Payments record in Airtable             │
+│      (tier: free, status: completed)                        │
+│    - Sends welcome SMS sequence (from main message          │
+│      templates: welcomeMessage1–4, 2s apart)                 │
+│    - Returns redirect URL: /success?tier=free&amount=0       │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 7. User sees success page                                    │
+│    - "WELCOME! You're all set with free access"              │
+│    - Same monthly care messages; reply STOP to opt out       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Summary:** FREE → webhook saves phone & sends free link → user opens /free?phone= → enters email → sign up → Airtable + welcome SMS → redirect to success.
+
+**Editable in Free admin:** Free page content (header, hero, intro) and the **Free message** (reply when user texts FREE) at **/free/admin**. Main welcome SMS texts for free signups use the main admin message templates.
+
+---
+
 ## Key Flows
 
 ### Flow 1: LOVE Message → Payment (Complete Journey)
@@ -330,9 +401,14 @@ This document describes the complete user journey from SMS interaction to paymen
 ### Messaging
 
 **GET /api/bird/send-monthly-messages**
-- Sends monthly messages to eligible subscribers
+- Sends monthly messages to eligible subscribers (all tiers; uses Main Content template)
 - Query: `?dryRun=true` for testing
-- Can be triggered via admin panel or direct API call
+- Can be triggered via Main Admin panel or direct API call
+
+**GET /api/bird/send-monthly-messages-free**
+- Sends monthly message to **free tier only** (Tier = "free"; uses Free Content monthly template)
+- Query: `?dryRun=true` for testing
+- Triggered via Free Admin button “Send Monthly Messages to Free Tier Only”
 
 **GET /api/bird/sync-automation**
 - Syncs automation messages from Bird.com to Airtable
@@ -340,14 +416,24 @@ This document describes the complete user journey from SMS interaction to paymen
 ### Admin Panel
 
 **GET /admin**
-- Admin panel for content management and monthly message sending
+- Main Admin panel for main site content and monthly message sending
 - Features:
   - Edit header and hero section content
   - Edit 4 welcome messages (sent sequentially after payment/signup)
   - Edit other message templates (LOVE reply, STOP reply, UNSUB reply, monthly message)
   - Save/Reset content changes
-  - Send monthly messages with one click
+  - Send monthly messages (all eligible subscribers) with one click
   - View delivery summary after sending
+
+**GET /free/admin**
+- Free Page Admin panel for free landing page and free-tier messaging
+- Features:
+  - Same UI structure as Main Admin (Header, Hero, Intro, Message Templates)
+  - Edit Free Content only: header, hero, intro, FREE reply, welcome 1–4, monthly message
+  - Save Changes / Reset to Default (all stored in Free Content table)
+  - Send monthly messages to **free tier only** (button calls send-monthly-messages-free)
+  - Live Preview of free page
+  - Tab to switch to Main Admin
 
 ---
 

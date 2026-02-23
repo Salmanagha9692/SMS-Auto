@@ -82,11 +82,10 @@ export async function POST(request: NextRequest) {
           status: 'completed',
         });
 
-        // Send welcome message sequence for free tier
+        // Send welcome message sequence for free tier (use free content templates)
         if (phoneNumber) {
           try {
-            // Get message templates from Airtable
-            const messages = await airtableService.getMessageTemplates();
+            const messages = await airtableService.getFreeMessageTemplates();
             const welcomeMessages = [
               messages.welcomeMessage1,
               messages.welcomeMessage2,

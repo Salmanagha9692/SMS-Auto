@@ -196,11 +196,11 @@ export async function POST(request: NextRequest) {
       console.log('✅ Phone record created successfully');
     }
     
-    // ── STEP 14: Process special messages (LOVE, FREE, UNSUB, STOP) ──
+    // ── STEP 14: Process special messages (LOVE, HOPE, UNSUB, STOP) ──
     // All keywords are case-insensitive
     const messageUpper = messageText.trim().toUpperCase();
     const isLove = messageUpper === 'LOVE';
-    const isFree = messageUpper === 'FREE';
+    const isHope = messageUpper === 'HOPE';  // keyword for free link
     const isUnsub = messageUpper === 'UNSUB' || messageUpper === 'UNSUBSCRIBE';
     const isStop = messageUpper === 'STOP';
     
@@ -214,9 +214,9 @@ export async function POST(request: NextRequest) {
       replySent = await sendLoveReply(normalizedPhone, conversationId);
     }
     
-    // Handle FREE message - send free landing page link
-    if (isFree) {
-      console.log(`🆓 FREE detected from ${normalizedPhone} - Sending free page link...`);
+    // Handle HOPE message - send free landing page link
+    if (isHope) {
+      console.log(`🆓 HOPE detected from ${normalizedPhone} - Sending free page link...`);
       replySent = await sendFreeReply(normalizedPhone, conversationId);
     }
     
@@ -385,7 +385,7 @@ async function sendLoveReply(phoneNumber: string, conversationId: string | null)
 }
 
 /**
- * Send FREE reply message with free landing page link
+ * Send free-link reply when user texts HOPE
  * Sends in the same conversation as the incoming message
  */
 async function sendFreeReply(phoneNumber: string, conversationId: string | null): Promise<boolean> {
@@ -396,10 +396,10 @@ async function sendFreeReply(phoneNumber: string, conversationId: string | null)
     const freeLink = `${baseUrl}/free?phone=${encodedPhone}`;
     const replyMessage = messages.freeReply.replace('{link}', freeLink);
     
-    console.log(`   📤 Sending FREE reply to ${phoneNumber} with link: ${freeLink}`);
+    console.log(`   📤 Sending free-link reply (HOPE) to ${phoneNumber} with link: ${freeLink}`);
     return await sendSMSInConversation(phoneNumber, replyMessage, conversationId);
   } catch (error: any) {
-    console.error(`   ❌ Error sending FREE reply:`, error.message);
+    console.error(`   ❌ Error sending free-link reply:`, error.message);
     return false;
   }
 }

@@ -72,16 +72,9 @@ export default function FreeJoinPage() {
   const handleContinue = async () => {
     setError(null);
 
-    // Validate contact info
+    // Validate contact info (email, name, or alias — any non-empty value)
     if (!email.trim()) {
-      setError("Email is required");
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setError("Please enter a valid email address");
+      setError("Please enter your email, name, or alias");
       return;
     }
 
@@ -114,6 +107,7 @@ export default function FreeJoinPage() {
           paymentType: "monthly",
           email: email.trim(),
           phoneNumber: checkoutPhone,
+          signupSource: "hope", // HOPE link → Free Signups table + Hope content; monthly from Hope only
         }),
       });
 
@@ -201,15 +195,15 @@ export default function FreeJoinPage() {
 
         {/* Phone from URL/link — same as main: not shown, used in background (localStorage) */}
 
-        {/* Email Input — same layout as main landing free tier */}
+        {/* Contact field: email, name, or alias */}
         <div className="mb-3 sm:mb-5">
           <div className="mb-3 sm:mb-4">
             <label className="block text-[10px] sm:text-[11px] tracking-[1px] uppercase text-black mb-2 font-noto font-medium">
-              EMAIL ADDRESS <span className="text-[#f52151]">*</span>
+              EMAIL / NAME / ALIAS <span className="text-[#f52151]">*</span>
             </label>
             <input
-              type="email"
-              placeholder="your@email.com"
+              type="text"
+              placeholder="your@email.com or your name or alias"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full h-[44px] sm:h-[48px] px-4 border-[1px] border-gray-900 bg-white font-noto text-[14px] sm:text-[15px] text-black focus:outline-none focus:!border-[#f52151] focus:border-[1px] focus:bg-gray-50 hover:!border-[#f52151] transition-all duration-200 placeholder:text-gray-400"

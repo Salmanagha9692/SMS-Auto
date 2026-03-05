@@ -1,17 +1,37 @@
 import axios, { AxiosInstance } from 'axios';
 
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+const AIRTABLE_FREE_BASE_ID = process.env.AIRTABLE_FREE_BASE_ID;
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 const AIRTABLE_META_API_BASE = 'https://api.airtable.com/v0/meta';
 
+/** Payment record field for email, name, or alias (Free Signups / Hope only) */
+export const PAYMENT_EMAIL_NAME_ALIAS_FIELD = 'EMAIL / NAME / ALIAS';
+
+/** Payments table uses "Email" column (main/paid campaigns); keep for Stripe webhook compatibility */
+const PAYMENTS_EMAIL_FIELD = 'Email';
+
+/** Table name for Hope-tier signups (HOPE link). Fully separate from Payments table. */
+export const FREE_SIGNUPS_TABLE_NAME = 'Free Signups';
+
+/** Tier value for Hope campaign signups (stored in Free Signups table). */
+export const HOPE_TIER_VALUE = 'Hope';
+
 /**
- * Get Airtable Base ID from environment variables
+ * Get Airtable Base ID from environment variables (main/campaigns base)
  */
 function getAirtableBaseId(): string {
   if (!AIRTABLE_BASE_ID) {
     throw new Error('AIRTABLE_BASE_ID not found in environment variables');
   }
   return AIRTABLE_BASE_ID;
+}
+
+/**
+ * Get Airtable Base ID for free campaign. Uses AIRTABLE_FREE_BASE_ID if set, else main base.
+ */
+function getFreeBaseId(): string {
+  return AIRTABLE_FREE_BASE_ID && AIRTABLE_FREE_BASE_ID.trim() ? AIRTABLE_FREE_BASE_ID.trim() : getAirtableBaseId();
 }
 
 /**
@@ -34,12 +54,13 @@ function getAirtableClient(): AxiosInstance {
 
 /**
  * Get all tables metadata for a base
+ * @param baseId - Optional. Uses free base if not provided for free-table operations; pass explicitly for a specific base.
  */
-export async function getTables() {
+export async function getTables(baseId?: string) {
   try {
     const client = getAirtableClient();
-    const baseId = getAirtableBaseId();
-    const response = await client.get(`${AIRTABLE_META_API_BASE}/bases/${baseId}/tables`);
+    const id = baseId ?? getAirtableBaseId();
+    const response = await client.get(`${AIRTABLE_META_API_BASE}/bases/${id}/tables`);
     return response.data;
   } catch (error: any) {
     console.error('Error fetching Airtable tables:', error.response?.data || error.message);
@@ -49,8 +70,9 @@ export async function getTables() {
 
 /**
  * Create a new table in Airtable
+ * @param baseId - Optional. Use for free campaign base (e.g. getFreeBaseId()).
  */
-export async function createTable(tableName: string, fields: any[]) {
+export async function createTable(tableName: string, fields: any[], baseId?: string) {
   try {
     const client = getAirtableClient();
     const payload = {
@@ -59,8 +81,8 @@ export async function createTable(tableName: string, fields: any[]) {
       fields: fields
     };
     console.log('Creating table with payload:', JSON.stringify(payload, null, 2));
-    const baseId = getAirtableBaseId();
-    const response = await client.post(`${AIRTABLE_META_API_BASE}/bases/${baseId}/tables`, payload);
+    const id = baseId ?? getAirtableBaseId();
+    const response = await client.post(`${AIRTABLE_META_API_BASE}/bases/${id}/tables`, payload);
     return response.data;
   } catch (error: any) {
     console.error('Error creating Airtable table:', error.response?.data || error.message);
@@ -73,11 +95,13 @@ export async function createTable(tableName: string, fields: any[]) {
 
 /**
  * Get records from a table (using data API)
+ * @param baseId - Optional. Use getFreeBaseId() for Free Signups table.
  */
 export async function getRecords(tableNameOrId: string, options: {
   view?: string;
   maxRecords?: number;
   filterByFormula?: string;
+  baseId?: string;
 } = {}) {
   try {
     const client = getAirtableClient();
@@ -88,7 +112,7 @@ export async function getRecords(tableNameOrId: string, options: {
     if (options.filterByFormula) params.append('filterByFormula', options.filterByFormula);
     
     const queryString = params.toString();
-    const baseId = getAirtableBaseId();
+    const baseId = options.baseId ?? getAirtableBaseId();
     const url = `${AIRTABLE_API_BASE}/${baseId}/${encodeURIComponent(tableNameOrId)}${queryString ? `?${queryString}` : ''}`;
     
     const response = await client.get(url);
@@ -101,12 +125,13 @@ export async function getRecords(tableNameOrId: string, options: {
 
 /**
  * Create a record in a table (using data API)
+ * @param baseId - Optional. Use getFreeBaseId() for Free Signups table.
  */
-export async function createRecord(tableNameOrId: string, fields: Record<string, any>) {
+export async function createRecord(tableNameOrId: string, fields: Record<string, any>, baseId?: string) {
   try {
     const client = getAirtableClient();
-    const baseId = getAirtableBaseId();
-    const response = await client.post(`${AIRTABLE_API_BASE}/${baseId}/${encodeURIComponent(tableNameOrId)}`, {
+    const id = baseId ?? getAirtableBaseId();
+    const response = await client.post(`${AIRTABLE_API_BASE}/${id}/${encodeURIComponent(tableNameOrId)}`, {
       fields: fields
     });
     return response.data;
@@ -118,12 +143,13 @@ export async function createRecord(tableNameOrId: string, fields: Record<string,
 
 /**
  * Update a record in a table (using data API)
+ * @param baseId - Optional. Use getFreeBaseId() for Free Signups table.
  */
-export async function updateRecord(tableNameOrId: string, recordId: string, fields: Record<string, any>) {
+export async function updateRecord(tableNameOrId: string, recordId: string, fields: Record<string, any>, baseId?: string) {
   try {
     const client = getAirtableClient();
-    const baseId = getAirtableBaseId();
-    const response = await client.patch(`${AIRTABLE_API_BASE}/${baseId}/${encodeURIComponent(tableNameOrId)}/${recordId}`, {
+    const id = baseId ?? getAirtableBaseId();
+    const response = await client.patch(`${AIRTABLE_API_BASE}/${id}/${encodeURIComponent(tableNameOrId)}/${recordId}`, {
       fields: fields
     });
     return response.data;
@@ -313,7 +339,7 @@ export async function updateFreeContent(contentData: {
 }
 
 /**
- * Get free message templates (for FREE keyword reply and free page messages)
+ * Get free message templates (for HOPE keyword reply and free page messages)
  */
 export async function getFreeMessageTemplates() {
   try {
@@ -680,11 +706,11 @@ export async function findOrCreatePaymentsTable() {
       return paymentsTable;
     }
 
-    // Create payments table
+    // Create payments table (uses "Email" for Stripe/webhook compatibility)
     const fields = [
       {
-        name: 'Email',
-        type: 'email',
+        name: PAYMENTS_EMAIL_FIELD,
+        type: 'singleLineText',
         description: 'Customer email address'
       },
       {
@@ -833,6 +859,136 @@ export async function findOrCreatePaymentsTable() {
 }
 
 /**
+ * Find or create the Free Signups table (free campaign / HOPE link).
+ * Uses AIRTABLE_FREE_BASE_ID if set, otherwise the main base.
+ */
+export async function findOrCreateFreeSignupsTable() {
+  try {
+    const freeBaseId = getFreeBaseId();
+    const tablesData = await getTables(freeBaseId);
+    const normalizedName = FREE_SIGNUPS_TABLE_NAME.toLowerCase().replace(/\s/g, '');
+    const freeTable = tablesData.tables?.find((table: any) =>
+      (table.name || '').toLowerCase().replace(/\s/g, '') === normalizedName
+    );
+
+    if (freeTable) {
+      return { table: freeTable, baseId: freeBaseId };
+    }
+
+    const fields = [
+      {
+        name: PAYMENT_EMAIL_NAME_ALIAS_FIELD,
+        type: 'singleLineText',
+        description: 'Customer email, name, or alias'
+      },
+      {
+        name: 'Phone Number',
+        type: 'phoneNumber',
+        description: 'Customer phone number'
+      },
+      {
+        name: 'Tier',
+        type: 'singleSelect',
+        description: 'Campaign tier; Hope = signup via HOPE link',
+        options: {
+          choices: [{ name: HOPE_TIER_VALUE }]
+        }
+      },
+      {
+        name: 'Status',
+        type: 'singleSelect',
+        options: {
+          choices: [
+            { name: 'active' },
+            { name: 'completed' },
+            { name: 'inactive' },
+            { name: 'cancelled' }
+          ]
+        }
+      },
+      {
+        name: 'Created At',
+        type: 'dateTime',
+        description: 'Signup created timestamp',
+        options: {
+          dateFormat: { name: 'iso' },
+          timeFormat: { name: '24hour' },
+          timeZone: 'utc'
+        }
+      },
+      {
+        name: 'Last Updated',
+        type: 'dateTime',
+        description: 'Last update timestamp',
+        options: {
+          dateFormat: { name: 'iso' },
+          timeFormat: { name: '24hour' },
+          timeZone: 'utc'
+        }
+      }
+    ];
+
+    const newTable = await createTable(FREE_SIGNUPS_TABLE_NAME, fields, freeBaseId);
+    return { table: newTable, baseId: freeBaseId };
+  } catch (error) {
+    console.error('Error finding or creating Free Signups table:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a Hope-tier signup record (HOPE link). Stored only in Free Signups table; fully separate from Payments.
+ */
+export async function createFreePaymentRecord(paymentData: {
+  email?: string;
+  phoneNumber?: string;
+  status?: string;
+}) {
+  try {
+    const { table, baseId } = await findOrCreateFreeSignupsTable();
+    const tableName = table.name || FREE_SIGNUPS_TABLE_NAME;
+    const hasTierField = Array.isArray((table as any).fields) && (table as any).fields.some((f: any) => f.name === 'Tier');
+
+    const fields: Record<string, any> = {
+      'Status': paymentData.status ?? 'completed',
+      'Created At': new Date().toISOString(),
+      'Last Updated': new Date().toISOString()
+    };
+    if (hasTierField) fields['Tier'] = HOPE_TIER_VALUE;
+
+    if (paymentData.email) fields[PAYMENT_EMAIL_NAME_ALIAS_FIELD] = paymentData.email;
+    if (paymentData.phoneNumber) fields['Phone Number'] = paymentData.phoneNumber;
+
+    const record = await createRecord(tableName, fields, baseId);
+    return record;
+  } catch (error) {
+    console.error('Error creating Hope-tier signup record:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all active Hope-tier signups (for monthly Hope messages). Uses Free Signups table only; no data from Payments.
+ */
+export async function getActiveFreePayments() {
+  try {
+    const { table, baseId } = await findOrCreateFreeSignupsTable();
+    const tableName = table.name || FREE_SIGNUPS_TABLE_NAME;
+
+    // All records in this table are Hope tier. Status active or completed (Tier=Hope set on create for new records).
+    const records = await getRecords(tableName, {
+      filterByFormula: `OR({Status} = "active", {Status} = "completed")`,
+      baseId
+    });
+
+    return records.records || [];
+  } catch (error) {
+    console.error('Error getting active Hope-tier signups:', error);
+    throw error;
+  }
+}
+
+/**
  * Create a payment record in Airtable
  */
 export async function createPaymentRecord(paymentData: {
@@ -867,7 +1023,7 @@ export async function createPaymentRecord(paymentData: {
       'Last Updated': new Date().toISOString()
     };
 
-    if (paymentData.email) fields['Email'] = paymentData.email;
+    if (paymentData.email) fields[PAYMENTS_EMAIL_FIELD] = paymentData.email;
     if (paymentData.phoneNumber) fields['Phone Number'] = paymentData.phoneNumber;
     if (paymentData.name) fields['Name'] = paymentData.name;
     if (paymentData.addressLine1) fields['Address Line 1'] = paymentData.addressLine1;
@@ -919,7 +1075,7 @@ export async function updatePaymentRecord(recordId: string, paymentData: {
       'Last Updated': new Date().toISOString()
     };
 
-    if (paymentData.email !== undefined) fields['Email'] = paymentData.email;
+    if (paymentData.email !== undefined) fields[PAYMENTS_EMAIL_FIELD] = paymentData.email;
     if (paymentData.phoneNumber !== undefined) fields['Phone Number'] = paymentData.phoneNumber;
     if (paymentData.name !== undefined) fields['Name'] = paymentData.name;
     if (paymentData.addressLine1 !== undefined) fields['Address Line 1'] = paymentData.addressLine1;

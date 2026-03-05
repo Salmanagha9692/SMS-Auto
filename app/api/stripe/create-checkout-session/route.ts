@@ -38,7 +38,9 @@ function getBaseUrl(request: NextRequest): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tier, customAmount, paymentType, email, phoneNumber } = body;
+    const { tier, customAmount, paymentType, email, phoneNumber, signupSource } = body;
+    // signupSource: 'hope' = HOPE link (/free page) → Free Signups table + Hope content. Omitted or 'main' = main site free tier → Payments table + main content.
+    const isHopeSignup = tier === 'free' && signupSource === 'hope';
 
     // Validate required fields
     if (!tier || !paymentType) {
@@ -70,46 +72,64 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // For free tier, skip Stripe and directly save to Airtable
+    // Free tier: two separate flows — Hope link (separate table + Hope content) vs main site free (Payments + main content)
     if (tier === 'free') {
       try {
-        await airtableService.createPaymentRecord({
-          email,
-          phoneNumber,
-          tier: 'free',
-          amount: 0,
-          paymentType,
-          status: 'completed',
-        });
-
-        // Send welcome message sequence for free tier (use free content templates)
-        if (phoneNumber) {
-          try {
-            const messages = await airtableService.getFreeMessageTemplates();
-            const welcomeMessages = [
-              messages.welcomeMessage1,
-              messages.welcomeMessage2,
-              messages.welcomeMessage3,
-              messages.welcomeMessage4
-            ].filter(msg => msg && msg.trim()); // Filter out empty messages
-            
-            if (welcomeMessages.length > 0) {
-              console.log(`📱 Sending ${welcomeMessages.length} welcome messages sequentially to ${phoneNumber} (free tier)`);
-              const results = await sendSMSSequence(phoneNumber, welcomeMessages, 2000); // 2 second delay between messages
-              const successCount = results.filter(r => r.success).length;
-              console.log(`✅ Welcome message sequence completed: ${successCount}/${welcomeMessages.length} sent successfully`);
-            } else {
-              console.log('⚠️  No welcome messages found in templates');
+        if (isHopeSignup) {
+          // HOPE link signup: save to Free Signups table only; use Hope (Free Content) templates
+          await airtableService.createFreePaymentRecord({
+            email,
+            phoneNumber,
+            status: 'completed',
+          });
+          if (phoneNumber) {
+            try {
+              const messages = await airtableService.getFreeMessageTemplates();
+              const welcomeMessages = [
+                messages.welcomeMessage1,
+                messages.welcomeMessage2,
+                messages.welcomeMessage3,
+                messages.welcomeMessage4
+              ].filter(msg => msg && msg.trim());
+              if (welcomeMessages.length > 0) {
+                console.log(`📱 [Hope] Sending ${welcomeMessages.length} welcome messages to ${phoneNumber}`);
+                await sendSMSSequence(phoneNumber, welcomeMessages, 2000);
+              }
+            } catch (smsError: any) {
+              console.error('⚠️  Failed to send Hope welcome sequence:', smsError.message);
             }
-          } catch (smsError: any) {
-            console.error('⚠️  Failed to send welcome message sequence:', smsError.message);
+          }
+        } else {
+          // Main site free tier: save to Payments table; use main message templates
+          await airtableService.createPaymentRecord({
+            email,
+            phoneNumber,
+            tier: 'free',
+            amount: 0,
+            paymentType,
+            status: 'completed',
+          });
+          if (phoneNumber) {
+            try {
+              const messages = await airtableService.getMessageTemplates();
+              const welcomeMessages = [
+                messages.welcomeMessage1,
+                messages.welcomeMessage2,
+                messages.welcomeMessage3,
+                messages.welcomeMessage4
+              ].filter(msg => msg && msg.trim());
+              if (welcomeMessages.length > 0) {
+                console.log(`📱 [Main free] Sending ${welcomeMessages.length} welcome messages to ${phoneNumber}`);
+                await sendSMSSequence(phoneNumber, welcomeMessages, 2000);
+              }
+            } catch (smsError: any) {
+              console.error('⚠️  Failed to send main free welcome sequence:', smsError.message);
+            }
           }
         }
 
-        // Redirect to success page with free tier info
         const baseUrl = getBaseUrl(request);
         const successUrl = `${baseUrl}/success?tier=free&amount=0`;
-        console.log('Free tier redirect URL:', successUrl);
         return NextResponse.json({ url: successUrl });
       } catch (error: any) {
         console.error('Error creating free tier record:', error);

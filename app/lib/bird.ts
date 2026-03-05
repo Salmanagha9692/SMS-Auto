@@ -176,13 +176,13 @@ async function createConversation(phoneNumber: string): Promise<string> {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        name: `SMS ${phoneNumber}`,
         channelId: BIRD_CHANNEL_ID,
         participants: [
           {
-            contact: {
-              identifierValue: phoneNumber,
-              identifierType: 'phone'
-            }
+            type: 'contact',
+            identifierKey: 'phonenumber',
+            identifierValue: phoneNumber
           }
         ]
       })

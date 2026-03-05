@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as airtableService from '@/app/lib/airtable';
+import { PAYMENT_EMAIL_NAME_ALIAS_FIELD } from '@/app/lib/airtable';
 import { sendSMSDirect } from '@/app/lib/bird';
 
 /**
@@ -26,10 +27,10 @@ export async function GET(request: NextRequest) {
     console.log(`🧪 Dry Run: ${dryRun}`);
     console.log('═══════════════════════════════════════════════════════════');
 
-    // Step 1: Get all active/completed payment records
+    // Step 1: Get all active/completed payment records from Payments table (paid + main free tier; Hope tier uses Free Signups only)
     console.log('📋 Step 1: Fetching active and completed payments...');
     const paymentRecords = await airtableService.getActivePayments();
-    console.log(`✅ Found ${paymentRecords.length} active/completed payments`);
+    console.log(`✅ Found ${paymentRecords.length} records (Payments table: paid + main free tier)`);
 
     if (paymentRecords.length === 0) {
       return NextResponse.json({
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
       try {
         const phoneNumber = payment.fields?.['Phone Number'];
         const status = payment.fields?.['Status'];
-        const email = payment.fields?.['Email'];
+        const email = payment.fields?.[PAYMENT_EMAIL_NAME_ALIAS_FIELD] ?? payment.fields?.['Email'];
         const tier = payment.fields?.['Tier'];
         const paymentType = payment.fields?.['Payment Type'];
 

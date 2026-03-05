@@ -143,6 +143,7 @@ export default function JoinPage() {
           paymentType,
           email: email.trim() || undefined,
           phoneNumber: checkoutPhone || undefined,
+          signupSource: selectedTier === "free" ? "main" : undefined, // main free tier → Payments table + main content
         }),
       });
 

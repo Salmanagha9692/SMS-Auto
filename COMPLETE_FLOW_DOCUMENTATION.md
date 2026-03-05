@@ -160,14 +160,14 @@ This document describes the complete user journey from SMS interaction to paymen
 
 ---
 
-## FREE Message Flow (Free-Only Signup)
+## HOPE Message Flow (Free-Only Signup)
 
-When a user texts **FREE** (case-insensitive) to your Bird.com number, this is the flow:
+When a user texts **HOPE** (case-insensitive) to your Bird.com number, this is the flow:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. User sends SMS "FREE"                                     │
-│    - Text "FREE" to Bird.com number                          │
+│ 1. User sends SMS "HOPE"                                     │
+│    - Text "HOPE" to Bird.com number                          │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
@@ -177,12 +177,12 @@ When a user texts **FREE** (case-insensitive) to your Bird.com number, this is t
 │    - Receives inbound SMS (phone + message text)             │
 │    - Saves/updates phone and message in Airtable              │
 │      (Phone Numbers table)                                   │
-│    - Detects keyword "FREE"                                  │
+│    - Detects keyword "HOPE"                                  │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. Automatic FREE reply                                     │
+│ 3. Automatic reply with free link                            │
 │    - Gets message from Free Content (freeReply template)     │
 │    - Replaces {link} with:                                   │
 │      https://your-domain.com/free?phone=+1234567890         │
@@ -210,8 +210,8 @@ When a user texts **FREE** (case-insensitive) to your Bird.com number, this is t
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 6. Backend (free tier)                                       │
-│    - Creates/updates Payments record in Airtable             │
-│      (tier: free, status: completed)                        │
+│    - Creates record in Free Signups table (free campaign)    │
+│      (status: completed)                                     │
 │    - Sends welcome SMS sequence (from main message          │
 │      templates: welcomeMessage1–4, 2s apart)                 │
 │    - Returns redirect URL: /success?tier=free&amount=0       │
@@ -225,9 +225,9 @@ When a user texts **FREE** (case-insensitive) to your Bird.com number, this is t
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Summary:** FREE → webhook saves phone & sends free link → user opens /free?phone= → enters email → sign up → Airtable + welcome SMS → redirect to success.
+**Summary:** HOPE → webhook saves phone & sends free link → user opens /free?phone= → enters email/name/alias → sign up → Airtable + welcome SMS → redirect to success.
 
-**Editable in Free admin:** Free page content (header, hero, intro) and the **Free message** (reply when user texts FREE) at **/free/admin**. Main welcome SMS texts for free signups use the main admin message templates.
+**Editable in Free admin:** Free page content (header, hero, intro) and the **Free message** (reply when user texts HOPE) at **/free/admin**. Main welcome SMS texts for free signups use the main admin message templates.
 
 ---
 
@@ -406,7 +406,7 @@ When a user texts **FREE** (case-insensitive) to your Bird.com number, this is t
 - Can be triggered via Main Admin panel or direct API call
 
 **GET /api/bird/send-monthly-messages-free**
-- Sends monthly message to **free tier only** (Tier = "free"; uses Free Content monthly template)
+- Sends monthly message to **Hope Tier only** (Free Signups table only; uses Free Content monthly template)
 - Query: `?dryRun=true` for testing
 - Triggered via Free Admin button “Send Monthly Messages to Free Tier Only”
 
@@ -429,9 +429,9 @@ When a user texts **FREE** (case-insensitive) to your Bird.com number, this is t
 - Free Page Admin panel for free landing page and free-tier messaging
 - Features:
   - Same UI structure as Main Admin (Header, Hero, Intro, Message Templates)
-  - Edit Free Content only: header, hero, intro, FREE reply, welcome 1–4, monthly message
+  - Edit Free Content only: header, hero, intro, HOPE reply (free link), welcome 1–4, monthly message
   - Save Changes / Reset to Default (all stored in Free Content table)
-  - Send monthly messages to **free tier only** (button calls send-monthly-messages-free)
+  - Send monthly messages to **Hope Tier only** (button calls send-monthly-messages-free; reads Free Signups table only)
   - Live Preview of free page
   - Tab to switch to Main Admin
 
@@ -439,7 +439,7 @@ When a user texts **FREE** (case-insensitive) to your Bird.com number, this is t
 
 ## Welcome Message Sequence
 
-After successful payment or free tier signup, **4 welcome messages are sent sequentially** (one by one, not combined):
+After successful payment or Hope-tier (HOPE link) signup, **4 welcome messages are sent sequentially** (one by one, not combined):
 
 1. **Message 1 — Welcome** (140 chars)
    - "Welcome to CompassionSMS supporting the wellbeing of those living through conflict and crisis. Sign up is free; your giving sustains FemSMS."
@@ -466,11 +466,23 @@ After successful payment or free tier signup, **4 welcome messages are sent sequ
 - Stores message templates including 4 welcome messages (welcomeMessage1, welcomeMessage2, welcomeMessage3, welcomeMessage4)
 - Section field options: `header`, `hero`, `messages`
 
-### Payments Table
+### Separate tables and flows
+- **Payments table** — Main site: paid tiers and **main free tier** (user selects Free on main landing after LOVE). Same content (main admin) and same monthly send (main “Send monthly messages”). Tier can be free, 5, 10, etc.
+- **Free Signups table** — **Hope only** (HOPE keyword → free link → /free page). Fully separate: different table, Hope/Free Content, and “Send Monthly to Hope Tier” only. No overlap with Payments.
+
+### Payments Table (paid/other campaigns)
 - Email, Phone Number, Tier, Amount
 - Payment Type (one-time/monthly)
 - Stripe IDs (Customer, Subscription, Session)
 - Status (pending/completed/active/failed/cancelled)
+
+### Free Signups Table (Hope Tier only)
+- EMAIL / NAME / ALIAS, Phone Number
+- Tier (Hope) — all signups via HOPE link
+- Status (active/completed/inactive/cancelled)
+- Created At, Last Updated
+- Data is fully separate: no overlap with Payments table. Send monthly messages to Hope Tier uses this table only.
+- Optional: use a different Airtable base by setting `AIRTABLE_FREE_BASE_ID` in `.env.local`.
 
 ### Phone Numbers Table
 - Phone Number (primary)
@@ -539,7 +551,7 @@ After successful payment or free tier signup, **4 welcome messages are sent sequ
 
 4. **Keyword Matching**
    - Case-insensitive matching
-   - Keywords: LOVE, UNSUB, UNSUBSCRIBE, STOP
+   - Keywords: LOVE, HOPE (free link), UNSUB, UNSUBSCRIBE, STOP
    - Processes immediately upon detection
 
 ### Stripe Integration
@@ -576,10 +588,9 @@ BIRD_WORKSPACE_ID=...
 BIRD_CHANNEL_ID=...
 
 # Airtable
-AIRTABLE_BASE_ID=...
+AIRTABLE_BASE_ID=...          # Main base (payments, phone numbers, content)
 AIRTABLE_TOKEN=...
-AIRTABLE_PAYMENTS_TABLE=...
-AIRTABLE_PHONE_NUMBERS_TABLE=...
+AIRTABLE_FREE_BASE_ID=...     # Optional. Free campaign table (Free Signups). If unset, uses main base.
 
 # Application
 NGROK_URL=https://selectable-equiprobable-andrea.ngrok-free.dev

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as airtableService from '@/app/lib/airtable';
+import { PAYMENT_EMAIL_NAME_ALIAS_FIELD } from '@/app/lib/airtable';
 import { sendSMSDirect } from '@/app/lib/bird';
 
 /**
- * Monthly Message Delivery — Free Tier Only
+ * Monthly Message Delivery — Hope Tier Only (separate from paid campaigns)
  *
- * Sends the free-tier monthly care message to subscribers with Tier = "free"
- * and status "active" or "completed". Uses Free Content message template.
+ * Sends the monthly care message to all Hope-tier signups only. Reads from
+ * Free Signups table only (no data from Payments table). Hope = signup via HOPE link.
  *
  * GET /api/bird/send-monthly-messages-free
  * GET /api/bird/send-monthly-messages-free?dryRun=true
@@ -18,22 +19,19 @@ export async function GET(request: NextRequest) {
     const dryRun = searchParams.get('dryRun') === 'true';
 
     console.log('═══════════════════════════════════════════════════════════');
-    console.log('📅 Monthly Message Delivery — Free Tier Only');
+    console.log('📅 Monthly Message Delivery — Hope Tier Only');
     console.log(`🧪 Dry Run: ${dryRun}`);
     console.log('═══════════════════════════════════════════════════════════');
 
-    const paymentRecords = await airtableService.getActivePayments();
-    const freePayments = (paymentRecords || []).filter(
-      (p: any) => (p.fields?.['Tier'] || '').toString().toLowerCase() === 'free'
-    );
-    console.log(`✅ Found ${freePayments.length} free-tier payments (of ${paymentRecords.length} total active/completed)`);
+    const hopeSignups = await airtableService.getActiveFreePayments();
+    console.log(`✅ Found ${hopeSignups.length} Hope-tier signups (Free Signups table only)`);
 
-    if (freePayments.length === 0) {
+    if (hopeSignups.length === 0) {
       return NextResponse.json({
         success: true,
         dryRun,
         summary: {
-          totalFree: 0,
+          totalHopeTier: 0,
           eligible: 0,
           skipped: 0,
           sent: 0,
@@ -54,11 +52,11 @@ export async function GET(request: NextRequest) {
     const messages = await airtableService.getFreeMessageTemplates();
     const monthlyMessage = messages.monthlyMessage || '';
 
-    for (const payment of freePayments) {
+    for (const payment of hopeSignups) {
       try {
         const phoneNumber = payment.fields?.['Phone Number'];
         const status = payment.fields?.['Status'];
-        const email = payment.fields?.['Email'];
+        const email = payment.fields?.[PAYMENT_EMAIL_NAME_ALIAS_FIELD];
 
         if (!phoneNumber) {
           results.skipped++;
@@ -143,7 +141,7 @@ export async function GET(request: NextRequest) {
       success: true,
       dryRun,
       summary: {
-        totalFree: freePayments.length,
+        totalHopeTier: hopeSignups.length,
         eligible: results.eligible,
         skipped: results.skipped,
         sent: dryRun ? 0 : results.sent,
@@ -152,7 +150,7 @@ export async function GET(request: NextRequest) {
       results: results.details,
     });
   } catch (error: any) {
-    console.error('Error in free-tier monthly message delivery:', error.message);
+    console.error('Error in Hope-tier monthly message delivery:', error.message);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

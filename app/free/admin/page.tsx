@@ -79,12 +79,12 @@ export default function FreeAdminPage() {
       const response = await fetch("/api/bird/send-monthly-messages-free");
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to send monthly messages to free tier");
+        throw new Error(data.error || "Failed to send monthly messages to Hope Tier");
       }
       setMessageResult(data);
     } catch (err: any) {
-      console.error("Failed to send monthly messages (free tier):", err);
-      setMessageError(err.message || "Failed to send monthly messages to free tier");
+      console.error("Failed to send monthly messages (Hope Tier):", err);
+      setMessageError(err.message || "Failed to send monthly messages to Hope Tier");
     } finally {
       setSendingMessages(false);
     }
@@ -124,7 +124,7 @@ export default function FreeAdminPage() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-gray-900">Free Page Admin</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Hope Admin</h1>
               <div className="flex items-center gap-3">
                 <a href="/free" className="text-sm text-[#f52151] hover:underline">
                   View Free Page
@@ -148,7 +148,7 @@ export default function FreeAdminPage() {
                 aria-current="page"
                 className="px-3 py-1.5 rounded-md bg-white text-gray-900 text-sm font-medium shadow-sm border border-gray-200"
               >
-                Free Page Admin
+                Hope Admin
               </span>
             </nav>
           </div>
@@ -291,7 +291,7 @@ export default function FreeAdminPage() {
               Message Templates
             </h2>
             <p className="text-xs text-gray-500 mb-4">
-              Stored separately from Main Admin. Used for free signups and free-tier monthly messages.
+              Stored separately from Main Admin. Hope campaign only: signups (HOPE link) and monthly messages to Hope Tier. Data is saved in the Free Signups table only.
             </p>
 
             <div className="space-y-4">
@@ -307,7 +307,7 @@ export default function FreeAdminPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Auto-reply when user texts "FREE". Use {"{link}"} for the free page URL.
+                  Auto-reply when user texts "HOPE". Use {"{link}"} for the free page URL.
                 </p>
               </div>
 
@@ -366,7 +366,7 @@ export default function FreeAdminPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f52151] focus:border-transparent"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Monthly care message for free-tier subscribers. Used when you click "Send Monthly to Free Tier".
+                  Monthly care message for Hope Tier only. Sent to everyone in the Free Signups table when you click &quot;Send Monthly to Hope Tier&quot;.
                 </p>
               </div>
             </div>
@@ -404,7 +404,7 @@ export default function FreeAdminPage() {
             </button>
           </div>
 
-          {/* Send Monthly to Free Tier Only */}
+          {/* Send Monthly to Hope Tier Only (Free Signups table only) */}
           <div className="space-y-4">
             <button
               onClick={handleSendMonthlyMessagesFree}
@@ -414,11 +414,11 @@ export default function FreeAdminPage() {
               {sendingMessages ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                  <span>Sending Monthly Messages to Free Tier...</span>
+                  <span>Sending Monthly Messages to Hope Tier...</span>
                 </>
               ) : (
                 <>
-                  <span>📤 Send Monthly Messages to Free Tier Only</span>
+                  <span>📤 Send Monthly Messages to Hope Tier Only</span>
                 </>
               )}
             </button>
@@ -432,13 +432,13 @@ export default function FreeAdminPage() {
             {messageResult && (
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <h3 className="font-semibold text-green-800 mb-3">
-                  ✓ Monthly Messages Sent to Free Tier
+                  ✓ Monthly Messages Sent to Hope Tier
                 </h3>
                 {messageResult.summary && (
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-700">Free-tier payments:</span>
-                      <span className="font-medium">{messageResult.summary.totalFree}</span>
+                      <span className="text-gray-700">Hope-tier signups:</span>
+                      <span className="font-medium">{messageResult.summary.totalHopeTier ?? messageResult.summary.totalFree}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-700">Eligible:</span>

@@ -132,7 +132,7 @@ export default function AdminPage() {
                 ← Back to Site
               </a>
             </div>
-            {/* Admin panel switcher */}
+            {/* Admin panel switcher: Main Admin | Hope Admin */}
             <nav
               className="inline-flex p-0.5 bg-gray-100 border border-gray-200 rounded-lg shadow-inner"
               aria-label="Switch admin panel"
@@ -146,8 +146,9 @@ export default function AdminPage() {
               <a
                 href="/free/admin"
                 className="px-3 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-[#f52151] hover:bg-white/60 transition-colors"
+                title="Hope Admin"
               >
-                Free Page Admin
+                Hope Admin
               </a>
             </nav>
           </div>

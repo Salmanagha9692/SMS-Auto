@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { FreeContent, defaultFreeContent, getFreeContent } from "../lib/content";
 
-export default function FreeJoinPage() {
+function FreeJoinPageContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -276,5 +276,20 @@ export default function FreeJoinPage() {
         <div className="h-[env(safe-area-inset-bottom)]" />
       </footer>
     </div>
+  );
+}
+
+export default function FreeJoinPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen min-h-dvh bg-white flex flex-col max-w-[480px] mx-auto items-center justify-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#f52151] border-t-transparent" />
+          <div className="text-gray-600 text-sm font-noto font-medium">Loading...</div>
+        </div>
+      }
+    >
+      <FreeJoinPageContent />
+    </Suspense>
   );
 }

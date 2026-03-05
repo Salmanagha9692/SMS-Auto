@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [sessionDetails, setSessionDetails] = useState<any>(null);
@@ -188,3 +188,17 @@ export default function SuccessPage() {
   );
 }
 
+export default function SuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen min-h-dvh bg-white flex flex-col max-w-[480px] mx-auto items-center justify-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#f52151] border-t-transparent" />
+          <div className="text-gray-600 text-sm font-noto font-medium">Loading...</div>
+        </div>
+      }
+    >
+      <SuccessPageContent />
+    </Suspense>
+  );
+}
